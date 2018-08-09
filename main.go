@@ -1,13 +1,9 @@
 package main
 
 import (
-	"crypto/sha256"
-	"encoding/binary"
 	"flag"
-	"fmt"
-	"strconv"
 
-	"secondbit.org/wendy"
+	"github.com/alex-d-tc/bchain-routing/routingdriver"
 )
 
 func getFlags() (joinPtr *bool, portPtr *int, publicIPPtr *string, bootstrapIPPtr *string, bootstrapPortPtr *int, logFilePtr *string) {
@@ -22,51 +18,17 @@ func getFlags() (joinPtr *bool, portPtr *int, publicIPPtr *string, bootstrapIPPt
 	return
 }
 
-func nodeIDFromBytesSHA(entropySource []byte) wendy.NodeID {
-	result := sha256.Sum256(entropySource)
-	var id wendy.NodeID
-
-	id[0] = binary.BigEndian.Uint64(result[:8])
-	id[1] = binary.BigEndian.Uint64(result[8:16])
-
-	return id
-}
-
-func nodeIDFromString(str string) wendy.NodeID {
-	return nodeIDFromBytesSHA([]byte(str))
-}
-
 func main() {
 
 	joinPtr, portPtr, publicIPPtr, bootstrapIPPtr, bootstrapPortPtr, _ := getFlags()
 
-	ip := "192.168.31.113"
-	id := nodeIDFromBytesSHA([]byte(ip + ":" + strconv.Itoa(*portPtr)))
+	ip := ""
 
-	node := wendy.NewNode(id, ip, *publicIPPtr, "1", *portPtr)
-	cluster := wendy.NewCluster(node, Credentials{})
-	cluster.RegisterCallback(&MyApp{})
+	node := routingdriver.InitSwissNode(ip, *portPtr, *publicIPPtr)
 
 	if *joinPtr {
-		fmt.Println("Joining...")
-		cluster.Join(*bootstrapIPPtr, *bootstrapPortPtr)
-		fmt.Println("Joined!")
-	} else {
-		fmt.Println("Initializing cluster...")
+		node.Join(*bootstrapIPPtr, *bootstrapPortPtr)
 	}
 
-	fmt.Println("Listening...")
-	cluster.Listen()
-	defer cluster.Stop()
-}
-
-type Credentials struct {
-}
-
-func (cred Credentials) Marshal() []byte {
-	return make([]byte, 0)
-}
-
-func (cred Credentials) Valid(raw []byte) bool {
-	return true
+	node.Start()
 }

@@ -60,38 +60,6 @@ func main() {
 	defer cluster.Stop()
 }
 
-type MyApp struct {
-}
-
-func (app *MyApp) OnError(err error) {
-	panic(err.Error())
-}
-
-func (app *MyApp) OnDeliver(msg wendy.Message) {
-	fmt.Println("Received message: ", msg)
-}
-
-func (app *MyApp) OnForward(msg *wendy.Message, next wendy.NodeID) bool {
-	fmt.Printf("Forwarding message %s to Node %s.", msg.Key, next)
-	return true // return false if you don't want the message forwarded
-}
-
-func (app *MyApp) OnNewLeaves(leaves []*wendy.Node) {
-	fmt.Println("Leaf set changed: ", leaves)
-}
-
-func (app *MyApp) OnNodeJoin(node wendy.Node) {
-	fmt.Println("Node joined: ", node.ID)
-}
-
-func (app *MyApp) OnNodeExit(node wendy.Node) {
-	fmt.Println("Node left: ", node.ID)
-}
-
-func (app *MyApp) OnHeartbeat(node wendy.Node) {
-	fmt.Println("Received heartbeat from ", node.ID)
-}
-
 type Credentials struct {
 }
 

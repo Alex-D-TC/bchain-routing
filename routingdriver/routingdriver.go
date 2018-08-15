@@ -54,7 +54,9 @@ func (node *SwissNode) Start() {
 }
 
 func (node *SwissNode) Terminate() {
-	node.cluster.Stop()
+	if node.started {
+		node.cluster.Stop()
+	}
 }
 
 type wendyHook struct {

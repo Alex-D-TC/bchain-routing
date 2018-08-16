@@ -1,1 +1,1 @@
-$GOPATH/bin/bchain-routing -port=1025 -log-file=log.txt &
+$GOPATH/bin/bchain-routing cluster-start --local-ip 127.0.0.1 --port 8000

@@ -43,6 +43,10 @@ func (node *SwissNode) Start() {
 	}
 }
 
+func (node *SwissNode) Join(bootstrapIP string, bootstrapPort int) error {
+	return node.cluster.Join(bootstrapIP, bootstrapPort)
+}
+
 func (node *SwissNode) Terminate() {
 	if node.started {
 		node.cluster.Stop()

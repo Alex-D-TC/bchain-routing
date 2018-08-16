@@ -1,9 +1,1 @@
-#/bin/bash
-
-startPort=$1
-endPort=$2
-
-while [ "$startPort" -le "$endPort" ]; do
-    $GOPATH/bin/bchain-routing -port $(($startPort)) -bootstrap-ip=192.168.31.113 -bootstrap-port=1025 -join=true & 
-    let startPort++
-done
+${GOPATH}/bin/bchain-routing infra-deploy --local-ip 127.0.0.1 --global-ip 0.0.0.0 --start-port 3000 --end-port 3003 --bootstrap-ip 127.0.0.1 --bootstrap-port 8000

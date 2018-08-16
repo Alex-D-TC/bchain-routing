@@ -4,9 +4,7 @@ import (
 	"fmt"
 
 	"github.com/alex-d-tc/bchain-routing/routingdriver"
-	"github.com/alex-d-tc/bchain-routing/util"
 	"github.com/spf13/cobra"
-	"secondbit.org/wendy"
 )
 
 var singleInfraNodeDeploy = &cobra.Command{
@@ -42,14 +40,14 @@ func init() {
 }
 
 func runNode(localIP string, globalIP string, port int, bootstrapIP string, bootstrapPort int) {
-	node := wendy.NewNode(util.NodeIDFromStringSHA(localIP+" "+string(port)), localIP, globalIP, "", int(port))
-	cluster := wendy.NewCluster(node, routingdriver.Credentials{})
 
-	err := cluster.Join(bootstrapIP, int(bootstrapPort))
+	node := routingdriver.InitSwissNode(localIP, port, globalIP)
+
+	err := node.Join(bootstrapIP, int(bootstrapPort))
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 	fmt.Println("Listening...")
-	cluster.Listen()
+	node.Start()
 }

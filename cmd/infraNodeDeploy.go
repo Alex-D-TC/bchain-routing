@@ -52,7 +52,7 @@ func init() {
 func deployNode(localIP string, globalIP string, port int, bootstrapIP string, bootstrapPort int) {
 
 	gopath := os.Getenv("GOPATH")
-	command := exec.Command(fmt.Sprintf("%s/bin/bchain-routing.exe", gopath),
+	command := exec.Command(fmt.Sprintf("%s/bin/bchain-routing", gopath),
 		"single-infra-deploy",
 		"--port", strconv.Itoa(port),
 		"--bootstrap-ip", bootstrapIP,

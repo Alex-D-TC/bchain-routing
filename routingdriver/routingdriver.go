@@ -36,16 +36,6 @@ func InitSwissNode(localIP string, port int, publicIP string) *SwissNode {
 	}
 }
 
-func (node *SwissNode) Join(bootstrapIP string, bootstrapPort int) error {
-
-	err := node.cluster.Join(bootstrapIP, bootstrapPort)
-	if err == nil {
-		node.Start()
-	}
-
-	return err
-}
-
 func (node *SwissNode) Start() {
 	if !node.started {
 		node.started = true
@@ -57,11 +47,33 @@ func (node *SwissNode) Terminate() {
 	node.cluster.Stop()
 }
 
+type SwissMsg struct {
+}
+
+func SwissMsgFromBytes([]byte) (*SwissMsg, error) {
+	return nil, nil
+}
+
+func (msg *SwissMsg) ToBytes() []byte {
+	return []byte{}
+}
+
 type wendyHook struct {
+	outputChan chan<- SwissMsg
+}
+
+func makeWendyHook(outputChan chan<- SwissMsg) *wendyHook {
+	return &wendyHook{
+		outputChan: outputChan,
+	}
 }
 
 func (app *wendyHook) OnDeliver(msg wendy.Message) {
 	fmt.Println("Received message: ", msg)
+	swissMsg, err := SwissMsgFromBytes(msg.Value)
+	if err != nil {
+		app.outputChan <- *swissMsg
+	}
 }
 
 func (app *wendyHook) OnForward(msg *wendy.Message, next wendy.NodeID) bool {

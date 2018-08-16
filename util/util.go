@@ -3,6 +3,8 @@ package util
 import (
 	"crypto/sha256"
 	"encoding/binary"
+	"encoding/hex"
+	"fmt"
 
 	"secondbit.org/wendy"
 )
@@ -19,4 +21,49 @@ func NodeIDFromBytesSHA(entropySource []byte) wendy.NodeID {
 
 func NodeIDFromStringSHA(str string) wendy.NodeID {
 	return NodeIDFromBytesSHA([]byte(str))
+}
+
+func NodeIDFromHexForm(str string) (wendy.NodeID, error) {
+	bytes, err := hex.DecodeString(str)
+	if err != nil {
+		fmt.Println(err)
+		return wendy.NodeID{}, err
+	}
+
+	id := wendy.NodeID{}
+	id[0] = BytesToUint64(bytes[0:8])
+	id[1] = BytesToUint64(bytes[8:])
+
+	return id, nil
+}
+
+func NodeIDToString(id wendy.NodeID) string {
+	bytes := append(Uint64ToBytes(id[0]), Uint64ToBytes(id[1])...)
+	return hex.EncodeToString(bytes)
+}
+
+func Uint64ToBytes(num uint64) []byte {
+	result := make([]byte, 8)
+
+	for i := 7; i >= 0; i-- {
+		rawByte := num & 255
+		result[i] = byte(rawByte)
+	}
+
+	return result
+}
+
+func BytesToUint64(rawBytes []byte) uint64 {
+	var num uint64 = 0
+
+	for i := 0; i < 8; i++ {
+
+		num += uint64(rawBytes[i])
+
+		for k := 0; k < 8; k++ {
+			num *= 2
+		}
+	}
+
+	return num
 }

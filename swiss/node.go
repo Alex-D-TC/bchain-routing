@@ -11,7 +11,7 @@ import (
 
 type SwissNode struct {
 	driver *routingdriver.RoutingDriver
-	id     wendy.NodeID
+	Id     wendy.NodeID
 }
 
 func InitSwissNode(localIP string, port int, publicIP string) *SwissNode {
@@ -20,7 +20,7 @@ func InitSwissNode(localIP string, port int, publicIP string) *SwissNode {
 
 	return &SwissNode{
 		driver: routingdriver.MakeRoutingDriver(id, localIP, publicIP, port),
-		id:     id,
+		Id:     id,
 	}
 }
 

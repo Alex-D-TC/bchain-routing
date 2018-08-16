@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/alex-d-tc/bchain-routing/swiss"
 	"github.com/alex-d-tc/bchain-routing/util"
@@ -76,7 +77,11 @@ func runClient(localIP string, publicIP string, port int, bootstrapIP string, bo
 		case <-failChan:
 			fail = true
 		case line := <-lineChan:
+			line = strings.TrimSpace(line)
 			fmt.Println(line)
+			if line == "quit" {
+				fail = true
+			}
 		}
 
 		if fail {

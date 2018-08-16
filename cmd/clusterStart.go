@@ -3,10 +3,9 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/alex-d-tc/bchain-routing/routingdriver"
-	"github.com/alex-d-tc/bchain-routing/util"
+	"github.com/alex-d-tc/bchain-routing/swiss"
+
 	"github.com/spf13/cobra"
-	"secondbit.org/wendy"
 )
 
 var rootLocalIP string
@@ -33,9 +32,9 @@ func init() {
 }
 
 func runCluster(localIP string, globalIP string, port int) {
-	node := wendy.NewNode(util.NodeIDFromStringSHA(localIP+" "+string(port)), localIP, globalIP, "", int(port))
-	cluster := wendy.NewCluster(node, routingdriver.Credentials{})
+
+	node := swiss.InitSwissNode(localIP, port, globalIP)
 
 	fmt.Println("Listening...")
-	cluster.Listen()
+	node.Start()
 }

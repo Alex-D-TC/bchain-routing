@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/alex-d-tc/bchain-routing/routingdriver"
+	"github.com/alex-d-tc/bchain-routing/swiss"
 	"github.com/spf13/cobra"
 )
 
@@ -41,13 +41,11 @@ func init() {
 
 func runNode(localIP string, globalIP string, port int, bootstrapIP string, bootstrapPort int) {
 
-	node := routingdriver.InitSwissNode(localIP, port, globalIP)
+	node := swiss.InitSwissNode(localIP, port, globalIP)
 
-	err := node.Join(bootstrapIP, int(bootstrapPort))
+	err := node.JoinAndStart(bootstrapIP, int(bootstrapPort))
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	fmt.Println("Listening...")
-	node.Start()
 }

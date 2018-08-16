@@ -43,3 +43,16 @@ func (node *SwissNode) Terminate() {
 func (node *SwissNode) Send(destination wendy.NodeID, message *Message) error {
 	return node.driver.Send(destination, message.ToBytes())
 }
+
+func (node *SwissNode) processRaw(rawMsg []byte) (*Message, error) {
+	return MessageFromBytes(rawMsg)
+}
+
+func (node *SwissNode) processMessage(rawMsg []byte) {
+	msg, err := node.processRaw(rawMsg)
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println(msg.rawString)
+	}
+}

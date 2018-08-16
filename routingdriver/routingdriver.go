@@ -2,84 +2,79 @@ package routingdriver
 
 import (
 	"fmt"
-	"strconv"
 
-	"github.com/alex-d-tc/bchain-routing/util"
 	"secondbit.org/wendy"
 )
 
-type Credentials struct {
+const channelBufferSize = 100
+
+type RoutingDriver struct {
+	node       *wendy.Node
+	cluster    *wendy.Cluster
+	messageBus <-chan []byte
+	running    bool
 }
 
-func (cred Credentials) Marshal() []byte {
-	return make([]byte, 0)
-}
+func MakeRoutingDriver(nodeID wendy.NodeID, localIP string, globalIP string, port int) *RoutingDriver {
+	node := wendy.NewNode(nodeID, localIP, globalIP, "1", port)
 
-func (cred Credentials) Valid(raw []byte) bool {
-	return true
-}
+	channel := make(chan []byte, channelBufferSize)
+	hook := &wendyHook{channel}
 
-type SwissNode struct {
-	cluster *wendy.Cluster
-	started bool
-}
+	cluster := wendy.NewCluster(node, credentials{})
+	cluster.RegisterCallback(hook)
 
-func InitSwissNode(localIP string, port int, publicIP string) *SwissNode {
-	id := util.NodeIDFromStringSHA(localIP + ":" + strconv.Itoa(port))
-	node := wendy.NewNode(id, localIP, publicIP, "1", port)
-
-	cluster := wendy.NewCluster(node, Credentials{})
-	cluster.RegisterCallback(&wendyHook{})
-
-	return &SwissNode{
-		cluster: cluster,
+	return &RoutingDriver{
+		node:       node,
+		cluster:    cluster,
+		messageBus: channel,
+		running:    false,
 	}
 }
 
-func (node *SwissNode) Start() {
-	if !node.started {
-		node.started = true
-		go node.cluster.Listen()
+func (driver *RoutingDriver) ProcessMessages(processor func([]byte)) {
+	for {
+		processor(<-driver.messageBus)
 	}
 }
 
-func (node *SwissNode) Join(bootstrapIP string, bootstrapPort int) error {
-	return node.cluster.Join(bootstrapIP, bootstrapPort)
+func (driver *RoutingDriver) Join(bootstrapIP string, bootstrapPort int) error {
+	return driver.cluster.Join(bootstrapIP, bootstrapPort)
 }
 
-func (node *SwissNode) Terminate() {
-	if node.started {
-		node.cluster.Stop()
+func (driver *RoutingDriver) Start() {
+	if !driver.running {
+		driver.running = true
+		driver.cluster.Listen()
 	}
 }
 
-type SwissMsg struct {
+func (driver *RoutingDriver) Stop() {
+	if driver.running {
+		driver.running = false
+		driver.cluster.Stop()
+	}
 }
 
-func SwissMsgFromBytes([]byte) (*SwissMsg, error) {
-	return nil, nil
+func (driver *RoutingDriver) Send(destinationAddr wendy.NodeID, messageData []byte) error {
+	message := driver.cluster.NewMessage(255, destinationAddr, messageData)
+	return driver.cluster.Send(message)
 }
 
-func (msg *SwissMsg) ToBytes() []byte {
-	return []byte{}
-}
-
+/// WENDY DRIVER ///
 type wendyHook struct {
-	outputChan chan<- SwissMsg
+	OutputChan chan<- []byte
 }
 
-func makeWendyHook(outputChan chan<- SwissMsg) *wendyHook {
+func makeWendyHook(outputChan chan<- []byte) *wendyHook {
 	return &wendyHook{
-		outputChan: outputChan,
+		OutputChan: outputChan,
 	}
 }
 
 func (app *wendyHook) OnDeliver(msg wendy.Message) {
 	fmt.Println("Received message: ", msg)
-	swissMsg, err := SwissMsgFromBytes(msg.Value)
-	if err != nil {
-		app.outputChan <- *swissMsg
-	}
+	app.OutputChan <- msg.Value
 }
 
 func (app *wendyHook) OnForward(msg *wendy.Message, next wendy.NodeID) bool {
@@ -105,4 +100,15 @@ func (app *wendyHook) OnNodeExit(node wendy.Node) {
 
 func (app *wendyHook) OnHeartbeat(node wendy.Node) {
 	fmt.Println("Received heartbeat from ", node.ID)
+}
+
+type credentials struct {
+}
+
+func (cred credentials) Marshal() []byte {
+	return make([]byte, 0)
+}
+
+func (cred credentials) Valid(raw []byte) bool {
+	return true
 }

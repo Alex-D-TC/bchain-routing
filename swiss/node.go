@@ -2,7 +2,6 @@ package swiss
 
 import (
 	"fmt"
-	"strconv"
 
 	"github.com/alex-d-tc/bchain-routing/routingdriver"
 	"github.com/alex-d-tc/bchain-routing/util"
@@ -17,12 +16,7 @@ type SwissNode struct {
 
 func InitSwissNode(localIP string, port int, publicIP string) *SwissNode {
 
-	id := util.NodeIDFromStringSHA(fmt.Sprintf("%s:%d", localIP, strconv.Itoa(port)))
-	if port == 3000 {
-		id = wendy.NodeID{}
-		id[0] = 1
-		id[1] = 1
-	}
+	id := util.NodeIDFromStringSHA(fmt.Sprintf("%s:%d", localIP, port))
 
 	return &SwissNode{
 		driver:  routingdriver.MakeRoutingDriver(id, localIP, publicIP, port),

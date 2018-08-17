@@ -66,3 +66,12 @@ func BytesToUint64(rawBytes []byte) uint64 {
 
 	return num
 }
+
+func NonBlockingSend(channel chan<- byte, data byte) {
+	select {
+	case channel <- data:
+		break
+	default:
+		break
+	}
+}

@@ -22,22 +22,23 @@ type RoutingDriver struct {
 func MakeRoutingDriver(nodeID wendy.NodeID, localIP string, globalIP string, port int) *RoutingDriver {
 	node := wendy.NewNode(nodeID, localIP, globalIP, "1", port)
 
-	channel := make(chan []byte, channelBufferSize)
-	hook := &wendyHook{channel}
+	messageBus := make(chan []byte, channelBufferSize)
+	hook := &wendyHook{
+		OutputChan: messageBus,
+	}
 
 	cluster := wendy.NewCluster(node, credentials{})
 	cluster.RegisterCallback(hook)
 
-	killProcessor := make(chan byte)
-	startProcessor := make(chan byte)
+	killProcessor := make(chan byte, 1)
+	startProcessor := make(chan byte, 1)
 
-	killProcessor <- 1
 	startProcessor <- 1
 
 	return &RoutingDriver{
 		node:                  node,
 		cluster:               cluster,
-		messageBus:            channel,
+		messageBus:            messageBus,
 		running:               false,
 		killMessageProcessor:  killProcessor,
 		startMessageProcessor: startProcessor,
@@ -47,15 +48,23 @@ func MakeRoutingDriver(nodeID wendy.NodeID, localIP string, globalIP string, por
 func (driver *RoutingDriver) processMessages(processor func([]byte)) {
 	end := false
 
+	fmt.Println("Waiting until the current processor stops...")
+
 	// Wait until the former processor is stopped
 	<-driver.startMessageProcessor
+
+	fmt.Println("Driver started awaiting messages...")
 
 	for {
 		select {
 		case msg := <-driver.messageBus:
+			fmt.Println("Driver received message")
 			processor(msg)
+			break
 		case <-driver.killMessageProcessor:
+			fmt.Println("Driver received kill message")
 			end = true
+			break
 		}
 
 		if end {
@@ -108,7 +117,7 @@ func makeWendyHook(outputChan chan<- []byte) *wendyHook {
 }
 
 func (app *wendyHook) OnDeliver(msg wendy.Message) {
-	fmt.Println("Received message: ", msg)
+	//fmt.Println("Received message: ", msg)
 	app.OutputChan <- msg.Value
 }
 

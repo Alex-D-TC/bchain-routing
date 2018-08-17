@@ -39,14 +39,19 @@ func init() {
 }
 
 func runClient(localIP string, publicIP string, port int, bootstrapIP string, bootstrapPort int) {
+
+	fmt.Println("Building swiss node...")
+
 	node := swiss.InitSwissNode(localIP, port, publicIP)
+
+	fmt.Println("Starting routines...")
 
 	failChan := make(chan byte)
 	lineChan := make(chan string)
 
 	// Network listener goroutine
 	go func() {
-		err := node.JoinAndStart(bootstrapIP, bootstrapPort)
+		err := node.JoinAndStart(swiss.DefaultMessageProcessor, bootstrapIP, bootstrapPort)
 		if err != nil {
 			fmt.Println(err)
 			failChan <- 1

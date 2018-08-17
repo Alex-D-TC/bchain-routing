@@ -38,5 +38,5 @@ func runCluster(localIP string, globalIP string, port int) {
 	fmt.Println("My id is: ", node.Id)
 
 	fmt.Println("Listening...")
-	node.Start()
+	node.Start(swiss.DefaultMessageProcessor)
 }

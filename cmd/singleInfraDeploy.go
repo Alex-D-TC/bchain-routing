@@ -43,7 +43,7 @@ func runNode(localIP string, globalIP string, port int, bootstrapIP string, boot
 
 	node := swiss.InitSwissNode(localIP, port, globalIP)
 
-	err := node.JoinAndStart(bootstrapIP, int(bootstrapPort))
+	err := node.JoinAndStart(swiss.DefaultMessageProcessor, bootstrapIP, int(bootstrapPort))
 	if err != nil {
 		fmt.Println(err)
 		return

@@ -1,7 +1,8 @@
 package routingdriver
 
 import (
-	"fmt"
+	"log"
+	"os"
 
 	"secondbit.org/wendy"
 )
@@ -17,6 +18,8 @@ type RoutingDriver struct {
 	startMessageProcessor chan byte
 
 	running bool
+
+	logger *log.Logger
 }
 
 func MakeRoutingDriver(nodeID wendy.NodeID, localIP string, globalIP string, port int) *RoutingDriver {
@@ -42,38 +45,8 @@ func MakeRoutingDriver(nodeID wendy.NodeID, localIP string, globalIP string, por
 		running:               false,
 		killMessageProcessor:  killProcessor,
 		startMessageProcessor: startProcessor,
+		logger:                log.New(os.Stdout, "Swiss routing driver ", log.Ltime|log.Ldate),
 	}
-}
-
-func (driver *RoutingDriver) processMessages(processor func([]byte)) {
-	end := false
-
-	fmt.Println("Waiting until the current processor stops...")
-
-	// Wait until the former processor is stopped
-	<-driver.startMessageProcessor
-
-	fmt.Println("Driver started awaiting messages...")
-
-	for {
-		select {
-		case msg := <-driver.messageBus:
-			fmt.Println("Driver received message")
-			processor(msg)
-			break
-		case <-driver.killMessageProcessor:
-			fmt.Println("Driver received kill message")
-			end = true
-			break
-		}
-
-		if end {
-			break
-		}
-	}
-
-	// When killed, signal that another processor can begin
-	driver.startMessageProcessor <- 1
 }
 
 func (driver *RoutingDriver) Join(bootstrapIP string, bootstrapPort int) error {
@@ -105,55 +78,41 @@ func (driver *RoutingDriver) Send(destinationAddr wendy.NodeID, messageData []by
 	return driver.cluster.Send(message)
 }
 
-/// WENDY DRIVER ///
-type wendyHook struct {
-	OutputChan chan<- []byte
+func (driver *RoutingDriver) SetLogger(logger *log.Logger) {
+	driver.logger = logger
 }
 
-func makeWendyHook(outputChan chan<- []byte) *wendyHook {
-	return &wendyHook{
-		OutputChan: outputChan,
+func (driver *RoutingDriver) processMessages(processor func([]byte)) {
+	end := false
+
+	driver.debug("Waiting until the current processor stops...")
+
+	// Wait until the former processor is stopped
+	<-driver.startMessageProcessor
+
+	driver.debug("Driver started awaiting messages...")
+
+	for {
+		select {
+		case msg := <-driver.messageBus:
+			driver.debug("Driver received message")
+			processor(msg)
+			break
+		case <-driver.killMessageProcessor:
+			driver.debug("Driver received kill command")
+			end = true
+			break
+		}
+
+		if end {
+			break
+		}
 	}
+
+	// When killed, signal that another processor can begin
+	driver.startMessageProcessor <- 1
 }
 
-func (app *wendyHook) OnDeliver(msg wendy.Message) {
-	//fmt.Println("Received message: ", msg)
-	app.OutputChan <- msg.Value
-}
-
-func (app *wendyHook) OnForward(msg *wendy.Message, next wendy.NodeID) bool {
-	fmt.Printf("Forwarding message %s to Node %s.", msg.Key, next)
-	return true // return false if you don't want the message forwarded
-}
-
-func (app *wendyHook) OnError(err error) {
-	panic(err.Error())
-}
-
-func (app *wendyHook) OnNewLeaves(leaves []*wendy.Node) {
-	fmt.Println("Leaf set changed: ", leaves)
-}
-
-func (app *wendyHook) OnNodeJoin(node wendy.Node) {
-	fmt.Println("Node joined: ", node.ID)
-}
-
-func (app *wendyHook) OnNodeExit(node wendy.Node) {
-	fmt.Println("Node left: ", node.ID)
-}
-
-func (app *wendyHook) OnHeartbeat(node wendy.Node) {
-	fmt.Println("Received heartbeat from ", node.ID)
-	fmt.Println(node.ID[0], node.ID[1])
-}
-
-type credentials struct {
-}
-
-func (cred credentials) Marshal() []byte {
-	return make([]byte, 0)
-}
-
-func (cred credentials) Valid(raw []byte) bool {
-	return true
+func (driver *RoutingDriver) debug(msg string) {
+	driver.logger.Println(msg)
 }

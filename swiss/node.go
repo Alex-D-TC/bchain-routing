@@ -2,6 +2,8 @@ package swiss
 
 import (
 	"fmt"
+	"log"
+	"os"
 
 	"github.com/alex-d-tc/bchain-routing/routingdriver"
 	"github.com/alex-d-tc/bchain-routing/util"
@@ -12,6 +14,8 @@ type SwissNode struct {
 	driver  *routingdriver.RoutingDriver
 	Id      wendy.NodeID
 	started bool
+
+	logger *log.Logger
 }
 
 func InitSwissNode(localIP string, port int, publicIP string) *SwissNode {
@@ -22,6 +26,7 @@ func InitSwissNode(localIP string, port int, publicIP string) *SwissNode {
 		driver:  routingdriver.MakeRoutingDriver(id, localIP, publicIP, port),
 		Id:      id,
 		started: false,
+		logger:  log.New(os.Stdout, "Swiss node ", log.Ldate|log.Ltime),
 	}
 }
 
@@ -51,6 +56,15 @@ func (node *SwissNode) Terminate() {
 
 func (node *SwissNode) Send(destination wendy.NodeID, message *Message) error {
 	return node.driver.Send(destination, message.ToBytes())
+}
+
+func (node *SwissNode) SetLogger(logger *log.Logger) {
+	node.logger = logger
+	node.driver.SetLogger(logger)
+}
+
+func (node *SwissNode) debug(msg string) {
+	node.logger.Println(msg)
 }
 
 func (node *SwissNode) processRaw(rawMsg []byte) (*Message, error) {

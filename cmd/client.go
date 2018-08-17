@@ -69,8 +69,6 @@ func runClient(localIP string, publicIP string, port int, bootstrapIP string, bo
 	}()
 
 	fmt.Println(fmt.Sprintf("Client id: %s", util.NodeIDToString(node.Id)))
-	fmt.Println(util.NodeIDFromHexForm(util.NodeIDToString(node.Id)))
-	fmt.Println(fmt.Sprintf("%x", node.Id))
 
 	for {
 		fail := false
@@ -79,10 +77,11 @@ func runClient(localIP string, publicIP string, port int, bootstrapIP string, bo
 			fail = true
 		case line := <-lineChan:
 			line = strings.TrimSpace(line)
-			fmt.Println(line)
 			if line == "quit" {
 				fail = true
+				break
 			}
+			processCommand(line, node)
 		}
 
 		if fail {
@@ -90,4 +89,27 @@ func runClient(localIP string, publicIP string, port int, bootstrapIP string, bo
 			break
 		}
 	}
+}
+
+func processCommand(rawLine string, node *swiss.SwissNode) {
+	lineSplit := strings.Split(rawLine, " ")
+	command := lineSplit[0]
+
+	switch command {
+	case "send":
+		receiver := lineSplit[1]
+		message := lineSplit[2]
+
+		id, err := util.NodeIDFromHexForm(receiver)
+		if err != nil {
+			fmt.Println(err)
+			break
+		}
+
+		fmt.Println(fmt.Sprintf("Sending %s to %s", message, receiver))
+		node.Send(id, &swiss.Message{
+			RawString: message,
+		})
+	}
+
 }

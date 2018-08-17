@@ -9,10 +9,14 @@ import (
 const channelBufferSize = 100
 
 type RoutingDriver struct {
-	node       *wendy.Node
-	cluster    *wendy.Cluster
-	messageBus <-chan []byte
-	running    bool
+	node    *wendy.Node
+	cluster *wendy.Cluster
+
+	messageBus            <-chan []byte
+	killMessageProcessor  chan byte
+	startMessageProcessor chan byte
+
+	running bool
 }
 
 func MakeRoutingDriver(nodeID wendy.NodeID, localIP string, globalIP string, port int) *RoutingDriver {
@@ -24,27 +28,54 @@ func MakeRoutingDriver(nodeID wendy.NodeID, localIP string, globalIP string, por
 	cluster := wendy.NewCluster(node, credentials{})
 	cluster.RegisterCallback(hook)
 
+	killProcessor := make(chan byte)
+	startProcessor := make(chan byte)
+
+	killProcessor <- 1
+	startProcessor <- 1
+
 	return &RoutingDriver{
-		node:       node,
-		cluster:    cluster,
-		messageBus: channel,
-		running:    false,
+		node:                  node,
+		cluster:               cluster,
+		messageBus:            channel,
+		running:               false,
+		killMessageProcessor:  killProcessor,
+		startMessageProcessor: startProcessor,
 	}
 }
 
-func (driver *RoutingDriver) ProcessMessages(processor func([]byte)) {
+func (driver *RoutingDriver) processMessages(processor func([]byte)) {
+	end := false
+
+	// Wait until the former processor is stopped
+	<-driver.startMessageProcessor
+
 	for {
-		processor(<-driver.messageBus)
+		select {
+		case msg := <-driver.messageBus:
+			processor(msg)
+		case <-driver.killMessageProcessor:
+			end = true
+		}
+
+		if end {
+			break
+		}
 	}
+
+	// When killed, signal that another processor can begin
+	driver.startMessageProcessor <- 1
 }
 
 func (driver *RoutingDriver) Join(bootstrapIP string, bootstrapPort int) error {
 	return driver.cluster.Join(bootstrapIP, bootstrapPort)
 }
 
-func (driver *RoutingDriver) Start() {
+func (driver *RoutingDriver) Start(processor func([]byte)) {
 	if !driver.running {
 		driver.running = true
+
+		go driver.processMessages(processor)
 		driver.cluster.Listen()
 	}
 }
@@ -52,6 +83,10 @@ func (driver *RoutingDriver) Start() {
 func (driver *RoutingDriver) Stop() {
 	if driver.running {
 		driver.running = false
+
+		// Stop the currently running processor
+		driver.killMessageProcessor <- 1
+
 		driver.cluster.Stop()
 	}
 }
@@ -100,6 +135,7 @@ func (app *wendyHook) OnNodeExit(node wendy.Node) {
 
 func (app *wendyHook) OnHeartbeat(node wendy.Node) {
 	fmt.Println("Received heartbeat from ", node.ID)
+	fmt.Println(node.ID[0], node.ID[1])
 }
 
 type credentials struct {

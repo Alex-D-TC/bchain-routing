@@ -10,34 +10,49 @@ import (
 )
 
 type SwissNode struct {
-	driver *routingdriver.RoutingDriver
-	Id     wendy.NodeID
+	driver  *routingdriver.RoutingDriver
+	Id      wendy.NodeID
+	started bool
 }
 
 func InitSwissNode(localIP string, port int, publicIP string) *SwissNode {
 
 	id := util.NodeIDFromStringSHA(fmt.Sprintf("%s:%d", localIP, strconv.Itoa(port)))
+	if port == 3000 {
+		id = wendy.NodeID{}
+		id[0] = 1
+		id[1] = 1
+	}
 
 	return &SwissNode{
-		driver: routingdriver.MakeRoutingDriver(id, localIP, publicIP, port),
-		Id:     id,
+		driver:  routingdriver.MakeRoutingDriver(id, localIP, publicIP, port),
+		Id:      id,
+		started: false,
 	}
 }
 
-func (node *SwissNode) Start() {
-	node.driver.Start()
+func (node *SwissNode) Start(processor func(*Message)) {
+	if !node.started {
+		node.started = true
+		node.driver.Start(func(rawBytes []byte) {
+			node.processMessage(rawBytes, processor)
+		})
+	}
 }
 
-func (node *SwissNode) JoinAndStart(bootstrapIP string, bootstrapPort int) error {
+func (node *SwissNode) JoinAndStart(processor func(*Message), bootstrapIP string, bootstrapPort int) error {
 	err := node.driver.Join(bootstrapIP, bootstrapPort)
 	if err == nil {
-		node.driver.Start()
+		node.Start(processor)
 	}
 	return err
 }
 
 func (node *SwissNode) Terminate() {
-	node.driver.Stop()
+	if node.started {
+		node.started = false
+		node.driver.Stop()
+	}
 }
 
 func (node *SwissNode) Send(destination wendy.NodeID, message *Message) error {
@@ -48,11 +63,11 @@ func (node *SwissNode) processRaw(rawMsg []byte) (*Message, error) {
 	return MessageFromBytes(rawMsg)
 }
 
-func (node *SwissNode) processMessage(rawMsg []byte) {
+func (node *SwissNode) processMessage(rawMsg []byte, swissProcessor func(*Message)) {
 	msg, err := node.processRaw(rawMsg)
 	if err != nil {
 		fmt.Println(err)
 	} else {
-		fmt.Println(msg.rawString)
+		swissProcessor(msg)
 	}
 }

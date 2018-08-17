@@ -1,16 +1,16 @@
 package swiss
 
 type Message struct {
-	rawString string
+	RawString string
 }
 
 func MessageFromBytes(raw []byte) (*Message, error) {
 	rawString := string(raw)
 	return &Message{
-		rawString: rawString,
+		RawString: rawString,
 	}, nil
 }
 
 func (msg *Message) ToBytes() []byte {
-	return []byte(msg.rawString)
+	return []byte(msg.RawString)
 }

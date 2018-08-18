@@ -26,11 +26,11 @@ type Message struct {
 	Signature []byte
 }
 
-func MakeMessage(sender *wendy.NodeID, senderPubKey *rsa.PublicKey, senderPrivateKey *rsa.PrivateKey, receiver *wendy.NodeID, payload []byte) (*Message, error) {
+func MakeMessage(sender *wendy.NodeID, senderPrivateKey *rsa.PrivateKey, receiver *wendy.NodeID, payload []byte) (*Message, error) {
 	msg := Message{
 		Sender:       sender,
 		Receiver:     receiver,
-		SenderPubKey: senderPubKey,
+		SenderPubKey: &senderPrivateKey.PublicKey,
 		RelayChain:   nil,
 		Payload:      payload,
 		Signature:    nil,
@@ -51,7 +51,7 @@ func MakeMessage(sender *wendy.NodeID, senderPubKey *rsa.PublicKey, senderPrivat
 	return &msg, err
 }
 
-func (msg *Message) Relay(id *wendy.NodeID, nextID *wendy.NodeID, senderPublicKey *rsa.PublicKey, senderPrivateKey *rsa.PrivateKey) error {
+func (msg *Message) Relay(id *wendy.NodeID, nextID *wendy.NodeID, senderPrivateKey *rsa.PrivateKey) error {
 
 	currentID := msg.Sender
 	var prevBlock *relayBlock
@@ -64,7 +64,7 @@ func (msg *Message) Relay(id *wendy.NodeID, nextID *wendy.NodeID, senderPublicKe
 		return errors.New("The supplied ID does not match the NextID of the latest block in the Proof of Relay chain")
 	}
 
-	block, err := makeRelayBlock(id, senderPublicKey, senderPrivateKey, nextID, prevBlock)
+	block, err := makeRelayBlock(id, senderPrivateKey, nextID, prevBlock)
 	if err != nil {
 		return err
 	}

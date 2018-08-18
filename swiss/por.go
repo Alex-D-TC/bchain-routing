@@ -35,13 +35,13 @@ type validationRelayBlock struct {
 	NextID *wendy.NodeID
 }
 
-func makeRelayBlock(id *wendy.NodeID, pubKey *rsa.PublicKey, privKey *rsa.PrivateKey, nextID *wendy.NodeID, prevRelayBlock *relayBlock) (*relayBlock, error) {
+func makeRelayBlock(id *wendy.NodeID, privKey *rsa.PrivateKey, nextID *wendy.NodeID, prevRelayBlock *relayBlock) (*relayBlock, error) {
 	block := relayBlock{
 		PrevID:        prevRelayBlock.ID,
 		PrevPubKey:    prevRelayBlock.PubKey,
 		PrevSignature: prevRelayBlock.Signature,
 		ID:            id,
-		PubKey:        pubKey,
+		PubKey:        &privKey.PublicKey,
 		NextID:        nextID,
 	}
 
@@ -50,7 +50,7 @@ func makeRelayBlock(id *wendy.NodeID, pubKey *rsa.PublicKey, privKey *rsa.Privat
 		return nil, err
 	}
 
-	signature, err := rsa.SignPSS(nil, privKey, porHashFunc, porHashFuncImpl.Sum(blockBytes), nil)
+	signature, err := privKey.Sign(nil, porHashFuncImpl.Sum(blockBytes), nil)
 	if err == nil {
 		block.Signature = signature
 	}

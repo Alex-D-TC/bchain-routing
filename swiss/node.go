@@ -1,6 +1,7 @@
 package swiss
 
 import (
+	"crypto/rsa"
 	"fmt"
 	"log"
 	"os"
@@ -11,14 +12,16 @@ import (
 )
 
 type SwissNode struct {
-	driver  *routingdriver.RoutingDriver
-	Id      wendy.NodeID
+	Id         wendy.NodeID
+	PrivateKey *rsa.PrivateKey
+
 	started bool
 
+	driver *routingdriver.RoutingDriver
 	logger *log.Logger
 }
 
-func InitSwissNode(localIP string, port int, publicIP string) *SwissNode {
+func InitSwissNode(localIP string, port int, publicIP string, privKey *rsa.PrivateKey) *SwissNode {
 
 	id := util.NodeIDFromStringSHA(fmt.Sprintf("%s:%d", localIP, port))
 
@@ -54,9 +57,15 @@ func (node *SwissNode) Terminate() {
 	}
 }
 
-func (node *SwissNode) Send(destination wendy.NodeID, message *Message) error {
+func (node *SwissNode) Send(destination wendy.NodeID, payload []byte) error {
+
+	message, err := MakeMessage(&node.Id, node.PrivateKey, &destination, payload)
+	if err != nil {
+		return err
+	}
+
 	encoder, buffer := util.MakeEncoder()
-	err := encoder.Encode(message)
+	err = encoder.Encode(*message)
 	if err != nil {
 		return err
 	}

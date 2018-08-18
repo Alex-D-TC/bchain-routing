@@ -2,6 +2,7 @@ package swiss
 
 import (
 	"crypto"
+	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
 
@@ -50,7 +51,7 @@ func makeRelayBlock(id *wendy.NodeID, privKey *rsa.PrivateKey, nextID *wendy.Nod
 		return nil, err
 	}
 
-	signature, err := privKey.Sign(nil, porHashFuncImpl.Sum(blockBytes), nil)
+	signature, err := privKey.Sign(rand.Reader, porHashFuncImpl.Sum(blockBytes), nil)
 	if err == nil {
 		block.Signature = signature
 	}

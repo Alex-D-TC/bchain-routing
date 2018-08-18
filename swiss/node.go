@@ -64,13 +64,12 @@ func (node *SwissNode) Send(destination wendy.NodeID, payload []byte) error {
 		return err
 	}
 
-	encoder, buffer := util.MakeEncoder()
-	err = encoder.Encode(*message)
+	encodingResult, err := util.GobEncode(*message)
 	if err != nil {
 		return err
 	}
 
-	return node.driver.Send(destination, buffer.Bytes())
+	return node.driver.Send(destination, encodingResult)
 }
 
 func (node *SwissNode) SetLogger(logger *log.Logger) {

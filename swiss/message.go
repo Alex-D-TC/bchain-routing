@@ -2,6 +2,7 @@ package swiss
 
 import (
 	"crypto"
+	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
 	"errors"
@@ -41,7 +42,7 @@ func MakeMessage(sender *wendy.NodeID, senderPrivateKey *rsa.PrivateKey, receive
 		return nil, err
 	}
 
-	sign, err := rsa.SignPSS(nil, senderPrivateKey, messageHashFunction, messageHashFunctionImpl.Sum(bytes), nil)
+	sign, err := rsa.SignPSS(rand.Reader, senderPrivateKey, messageHashFunction, messageHashFunctionImpl.Sum(bytes), nil)
 	if err != nil {
 		return nil, err
 	}

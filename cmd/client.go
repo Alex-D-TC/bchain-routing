@@ -16,7 +16,7 @@ var clientCmd = &cobra.Command{
 	Short: "Start a client node",
 	Long:  "Starrrrt a cliennnnt nooooode",
 	Run: func(cmd *cobra.Command, args []string) {
-		runClient(clientLocalIP, clientGlobalIP, int(clientPort), clientBootstrapIP, int(clientBootstrapPort))
+		runClient(clientLocalIP, clientGlobalIP, int(clientPort), clientBootstrapIP, int(clientBootstrapPort), clientKeyPath)
 	},
 }
 
@@ -25,6 +25,7 @@ var clientLocalIP string
 var clientGlobalIP string
 var clientBootstrapIP string
 var clientBootstrapPort int32
+var clientKeyPath string
 
 func init() {
 	flags := clientCmd.Flags()
@@ -34,15 +35,22 @@ func init() {
 	flags.StringVar(&clientGlobalIP, "global-ip", "0.0.0.0", "The global ip")
 	flags.StringVar(&clientBootstrapIP, "bootstrap-ip", "127.0.0.1", "The bootstrap node ip")
 	flags.Int32Var(&clientBootstrapPort, "bootstrap-port", 8000, "The client bootstrap port")
+	flags.StringVar(&clientKeyPath, "key", "", "The path to the private key file")
 
 	rootCmd.AddCommand(clientCmd)
 }
 
-func runClient(localIP string, publicIP string, port int, bootstrapIP string, bootstrapPort int) {
+func runClient(localIP string, publicIP string, port int, bootstrapIP string, bootstrapPort int, keyPath string) {
 
 	fmt.Println("Building swiss node...")
 
-	node := swiss.InitSwissNode(localIP, port, publicIP)
+	privKey, err := util.LoadKeys(keyPath)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	node := swiss.InitSwissNode(localIP, port, publicIP, privKey)
 
 	fmt.Println("Starting routines...")
 

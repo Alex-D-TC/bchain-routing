@@ -15,6 +15,7 @@ var startPort int32
 var endPort int32
 var bootstrapIP string
 var bootstrapPort int32
+var keyPath string
 
 var infraNodeDeploy = &cobra.Command{
 	Use:   "infra-deploy",
@@ -27,7 +28,7 @@ var infraNodeDeploy = &cobra.Command{
 			if port > endPort {
 				break
 			}
-			deployNode(localIP, globalIP, int(port), bootstrapIP, int(bootstrapPort))
+			deployNode(localIP, globalIP, int(port), bootstrapIP, int(bootstrapPort), keyPath)
 			port++
 		}
 
@@ -45,11 +46,12 @@ func init() {
 	flags.Int32Var(&endPort, "end-port", 8080, "The cluster deployment end port")
 	flags.StringVar(&bootstrapIP, "bootstrap-ip", "127.0.0.1", "The bootstrap ip of the cluster")
 	flags.Int32Var(&bootstrapPort, "bootstrap-port", 3030, "The bootstrap port of the cluster")
+	flags.StringVar(&keyPath, "key", "", "The path to the private key file. For simplicity, the same private key will be held by all nodes in the local testnet")
 
 	rootCmd.AddCommand(infraNodeDeploy)
 }
 
-func deployNode(localIP string, globalIP string, port int, bootstrapIP string, bootstrapPort int) {
+func deployNode(localIP string, globalIP string, port int, bootstrapIP string, bootstrapPort int, keyPath string) {
 
 	gopath := os.Getenv("GOPATH")
 	command := exec.Command(fmt.Sprintf("%s/bin/bchain-routing", gopath),
@@ -58,7 +60,8 @@ func deployNode(localIP string, globalIP string, port int, bootstrapIP string, b
 		"--bootstrap-ip", bootstrapIP,
 		"--bootstrap-port", strconv.Itoa(bootstrapPort),
 		"--local-ip", localIP,
-		"--global-ip", globalIP)
+		"--global-ip", globalIP,
+		"--key", keyPath)
 
 	fmt.Println("Deploying...")
 	err := command.Start()

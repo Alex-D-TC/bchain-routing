@@ -1,11 +1,9 @@
 package swiss
 
 import (
-	"bytes"
 	"crypto"
 	"crypto/rsa"
 	"crypto/sha256"
-	"encoding/gob"
 
 	"github.com/alex-d-tc/bchain-routing/util"
 	"secondbit.org/wendy"
@@ -47,7 +45,7 @@ func makeRelayBlock(id *wendy.NodeID, pubKey *rsa.PublicKey, privKey *rsa.Privat
 		NextID:        nextID,
 	}
 
-	blockBytes, err := util.GobEncode(*makeValidationRelayBlock(&block))
+	blockBytes, err := block.ValidationBytes()
 	if err != nil {
 		return nil, err
 	}
@@ -71,11 +69,8 @@ func makeValidationRelayBlock(block *relayBlock) *validationRelayBlock {
 	}
 }
 
-func (block *relayBlock) ValidationBytes() []byte {
-	var result bytes.Buffer
-	encoder := gob.NewEncoder(&result)
-	encoder.Encode(*makeValidationRelayBlock(block))
-	return result.Bytes()
+func (block *relayBlock) ValidationBytes() ([]byte, error) {
+	return util.GobEncode(*makeValidationRelayBlock(block))
 }
 
 func Validate(blocks []relayBlock) bool {

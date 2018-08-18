@@ -87,3 +87,9 @@ func MakeDecoder() (*gob.Decoder, bytes.Buffer) {
 	var buffer bytes.Buffer
 	return gob.NewDecoder(&buffer), buffer
 }
+
+func GobEncode(data interface{}) ([]byte, error) {
+	encoder, buffer := MakeEncoder()
+	err := encoder.Encode(data)
+	return buffer.Bytes(), err
+}

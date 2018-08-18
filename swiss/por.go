@@ -3,44 +3,71 @@ package swiss
 import (
 	"bytes"
 	"crypto"
+	"crypto/rsa"
 	"crypto/sha256"
 	"encoding/gob"
+
+	"github.com/alex-d-tc/bchain-routing/util"
+	"secondbit.org/wendy"
 )
 
+var porHashFunc = crypto.SHA256
+var porHashFuncImpl = sha256.New()
+
 type relayBlock struct {
-	pubKey        crypto.PublicKey
-	prevPubKey    crypto.PublicKey
-	prevHash      [sha256.Size]byte
-	prevSignature []byte
+	PrevID        *wendy.NodeID
+	PrevPubKey    *rsa.PublicKey
+	PrevSignature []byte
+
+	ID        *wendy.NodeID
+	PubKey    *rsa.PublicKey
+	Signature []byte
+
+	NextID *wendy.NodeID
 }
 
 type validationRelayBlock struct {
-	pubKey        crypto.PublicKey
-	prevPubKey    crypto.PublicKey
-	prevHash      [sha256.Size]byte
-	prevSignature []byte
+	PrevID        *wendy.NodeID
+	PrevPubKey    *rsa.PublicKey
+	PrevSignature []byte
+
+	ID     *wendy.NodeID
+	PubKey *rsa.PublicKey
+
+	NextID *wendy.NodeID
 }
 
-func emptyRelayBlock(pubKey crypto.PublicKey) *relayBlock {
-	return &relayBlock{
-		prevHash: [sha256.Size]byte{},
+func makeRelayBlock(id *wendy.NodeID, pubKey *rsa.PublicKey, privKey *rsa.PrivateKey, nextID *wendy.NodeID, prevRelayBlock *relayBlock) (*relayBlock, error) {
+	block := relayBlock{
+		PrevID:        prevRelayBlock.ID,
+		PrevPubKey:    prevRelayBlock.PubKey,
+		PrevSignature: prevRelayBlock.Signature,
+		ID:            id,
+		PubKey:        pubKey,
+		NextID:        nextID,
 	}
-}
 
-func makeRelayBlock(pubKey crypto.PublicKey, prevPubKey crypto.PublicKey, prevHash [sha256.Size]byte) *relayBlock {
-	return &relayBlock{
-		pubKey:     pubKey,
-		prevPubKey: prevPubKey,
-		prevHash:   prevHash,
+	blockBytes, err := util.GobEncode(*makeValidationRelayBlock(&block))
+	if err != nil {
+		return nil, err
 	}
+
+	signature, err := rsa.SignPSS(nil, privKey, porHashFunc, porHashFuncImpl.Sum(blockBytes), nil)
+	if err == nil {
+		block.Signature = signature
+	}
+
+	return &block, err
 }
 
 func makeValidationRelayBlock(block *relayBlock) *validationRelayBlock {
 	return &validationRelayBlock{
-		pubKey:        block.pubKey,
-		prevPubKey:    block.prevPubKey,
-		prevHash:      block.prevHash,
-		prevSignature: block.prevSignature,
+		PrevID:        block.PrevID,
+		PrevPubKey:    block.PrevPubKey,
+		PrevSignature: block.PrevSignature,
+		ID:            block.ID,
+		PubKey:        block.PubKey,
+		NextID:        block.NextID,
 	}
 }
 
@@ -52,18 +79,5 @@ func (block *relayBlock) ValidationBytes() []byte {
 }
 
 func Validate(blocks []relayBlock) bool {
-	blocksCount := len(blocks)
-
-	if !bytes.Equal(blocks[blocksCount-1].prevHash[:], make([]byte, sha256.Size)) {
-		return false
-	}
-
-	for i := blocksCount - 2; i >= 0; i-- {
-		prevHash := sha256.Sum256(blocks[i+1].ValidationBytes())
-		if !bytes.Equal(prevHash[:], blocks[i].prevHash[:]) {
-			return false
-		}
-	}
-
 	return true
 }

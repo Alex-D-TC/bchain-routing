@@ -9,11 +9,13 @@ import (
 /// WENDY DRIVER ///
 type wendyHook struct {
 	OutputChan chan<- []byte
+	onForward  func(*wendy.Message, wendy.NodeID) bool
 }
 
-func makeWendyHook(outputChan chan<- []byte) *wendyHook {
+func makeWendyHook(outputChan chan<- []byte, onForward func(*wendy.Message, wendy.NodeID) bool) *wendyHook {
 	return &wendyHook{
 		OutputChan: outputChan,
+		onForward:  onForward,
 	}
 }
 
@@ -23,8 +25,7 @@ func (app *wendyHook) OnDeliver(msg wendy.Message) {
 }
 
 func (app *wendyHook) OnForward(msg *wendy.Message, next wendy.NodeID) bool {
-	fmt.Printf("Forwarding message %s to Node %s.", msg.Key, next)
-	return true // return false if you don't want the message forwarded
+	return app.onForward(msg, next)
 }
 
 func (app *wendyHook) OnError(err error) {
@@ -32,7 +33,7 @@ func (app *wendyHook) OnError(err error) {
 }
 
 func (app *wendyHook) OnNewLeaves(leaves []*wendy.Node) {
-	fmt.Println("Leaf set changed: ", leaves)
+	//fmt.Println("Leaf set changed: ", leaves)
 }
 
 func (app *wendyHook) OnNodeJoin(node wendy.Node) {

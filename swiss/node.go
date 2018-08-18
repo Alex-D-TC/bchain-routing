@@ -55,7 +55,13 @@ func (node *SwissNode) Terminate() {
 }
 
 func (node *SwissNode) Send(destination wendy.NodeID, message *Message) error {
-	return node.driver.Send(destination, message.ToBytes())
+	encoder, buffer := util.MakeEncoder()
+	err := encoder.Encode(message)
+	if err != nil {
+		return err
+	}
+
+	return node.driver.Send(destination, buffer.Bytes())
 }
 
 func (node *SwissNode) SetLogger(logger *log.Logger) {
@@ -68,7 +74,13 @@ func (node *SwissNode) debug(msg string) {
 }
 
 func (node *SwissNode) processRaw(rawMsg []byte) (*Message, error) {
-	return MessageFromBytes(rawMsg)
+	var result Message
+
+	decoder, buffer := util.MakeDecoder()
+	buffer.Write(rawMsg)
+
+	err := decoder.Decode(&result)
+	return &result, err
 }
 
 func (node *SwissNode) processMessage(rawMsg []byte, swissProcessor func(*Message)) {

@@ -1,6 +1,7 @@
 package routingdriver
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -26,9 +27,7 @@ func MakeRoutingDriver(nodeID wendy.NodeID, localIP string, globalIP string, por
 	node := wendy.NewNode(nodeID, localIP, globalIP, "1", port)
 
 	messageBus := make(chan []byte, channelBufferSize)
-	hook := &wendyHook{
-		OutputChan: messageBus,
-	}
+	hook := makeWendyHook(messageBus, forwardingProcessor)
 
 	cluster := wendy.NewCluster(node, credentials{})
 	cluster.RegisterCallback(hook)
@@ -47,6 +46,11 @@ func MakeRoutingDriver(nodeID wendy.NodeID, localIP string, globalIP string, por
 		startMessageProcessor: startProcessor,
 		logger:                log.New(os.Stdout, "Swiss routing driver ", log.Ltime|log.Ldate),
 	}
+}
+
+func forwardingProcessor(msg *wendy.Message, next wendy.NodeID) bool {
+	fmt.Printf("Forwarding message %s to Node %s.", msg.Key, next)
+	return true
 }
 
 func (driver *RoutingDriver) Join(bootstrapIP string, bootstrapPort int) error {

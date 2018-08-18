@@ -13,15 +13,15 @@ var porHashFunc = crypto.SHA256
 var porHashFuncImpl = sha256.New()
 
 type relayBlock struct {
-	PrevID        *wendy.NodeID
-	PrevPubKey    *rsa.PublicKey
-	PrevSignature []byte
-
-	ID        *wendy.NodeID
-	PubKey    *rsa.PublicKey
-	Signature []byte
-
+	ID     *wendy.NodeID
 	NextID *wendy.NodeID
+	PrevID *wendy.NodeID
+
+	PubKey     *rsa.PublicKey
+	PrevPubKey *rsa.PublicKey
+
+	Signature     []byte
+	PrevSignature []byte
 }
 
 type validationRelayBlock struct {

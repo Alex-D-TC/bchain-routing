@@ -86,6 +86,9 @@ func (node *SwissNode) debug(msg string) {
 }
 
 func (node *SwissNode) forwardingProcessor(rawPayload []byte, next wendy.NodeID) ([]byte, bool) {
+
+	// Message decoding from raw data
+
 	var msg Message
 	decoder, buffer := util.MakeDecoder()
 	buffer.Write(rawPayload)
@@ -96,11 +99,21 @@ func (node *SwissNode) forwardingProcessor(rawPayload []byte, next wendy.NodeID)
 		return rawPayload, false
 	}
 
+	// Relaying and Validation
+
 	err = msg.Relay(node.Id, next, node.PrivateKey)
 	if err != nil {
 		node.debug(fmt.Sprintf("%s", err))
 		return rawPayload, false
 	}
+
+	err = msg.ValidateRelayPath()
+	if err != nil {
+		node.debug(fmt.Sprintf("%s", err))
+		return rawPayload, false
+	}
+
+	// Message encoding to raw data
 
 	encoded, err := util.GobEncode(msg)
 	if err != nil {

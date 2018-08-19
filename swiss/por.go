@@ -2,7 +2,6 @@ package swiss
 
 import (
 	"crypto"
-	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
 
@@ -53,7 +52,7 @@ func makeRelayBlock(id wendy.NodeID, privKey *rsa.PrivateKey, nextID wendy.NodeI
 
 	hash := sha256.Sum256(blockBytes)
 
-	signature, err := rsa.SignPSS(rand.Reader, privKey, crypto.SHA256, hash[:], nil)
+	signature, err := util.Sign(privKey, crypto.SHA256, hash)
 	if err == nil {
 		block.Signature = signature
 	}
@@ -74,8 +73,4 @@ func makeValidationRelayBlock(block *RelayBlock) *validationRelayBlock {
 
 func (block *RelayBlock) ValidationBytes() ([]byte, error) {
 	return util.GobEncode(*makeValidationRelayBlock(block))
-}
-
-func Validate(blocks []RelayBlock) bool {
-	return true
 }

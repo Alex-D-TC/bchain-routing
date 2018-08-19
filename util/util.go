@@ -44,14 +44,14 @@ func NodeIDToString(id wendy.NodeID) string {
 	return hex.EncodeToString(bytes)
 }
 
-func MakeEncoder() (*gob.Encoder, bytes.Buffer) {
-	var buffer bytes.Buffer
-	return gob.NewEncoder(&buffer), buffer
+func MakeEncoder() (*gob.Encoder, *bytes.Buffer) {
+	buffer := bytes.NewBuffer([]byte{})
+	return gob.NewEncoder(buffer), buffer
 }
 
-func MakeDecoder() (*gob.Decoder, bytes.Buffer) {
-	var buffer bytes.Buffer
-	return gob.NewDecoder(&buffer), buffer
+func MakeDecoder() (*gob.Decoder, *bytes.Buffer) {
+	buffer := bytes.NewBuffer([]byte{})
+	return gob.NewDecoder(buffer), buffer
 }
 
 func GobEncode(data interface{}) ([]byte, error) {

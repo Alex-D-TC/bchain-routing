@@ -23,11 +23,13 @@ type RoutingDriver struct {
 	logger *log.Logger
 }
 
-func MakeRoutingDriver(nodeID wendy.NodeID, localIP string, globalIP string, port int) *RoutingDriver {
+func MakeRoutingDriver(nodeID wendy.NodeID, localIP string, globalIP string, port int, forwardMangler func([]byte, wendy.NodeID) ([]byte, bool)) *RoutingDriver {
 	node := wendy.NewNode(nodeID, localIP, globalIP, "1", port)
 
 	messageBus := make(chan []byte, channelBufferSize)
-	hook := makeWendyHook(messageBus, forwardingProcessor)
+	hook := makeWendyHook(messageBus, func(msg *wendy.Message, next wendy.NodeID) bool {
+		return forwardingProcessor(msg, next, forwardMangler)
+	})
 
 	cluster := wendy.NewCluster(node, credentials{})
 	cluster.RegisterCallback(hook)
@@ -48,9 +50,16 @@ func MakeRoutingDriver(nodeID wendy.NodeID, localIP string, globalIP string, por
 	}
 }
 
-func forwardingProcessor(msg *wendy.Message, next wendy.NodeID) bool {
-	fmt.Printf("Forwarding message %s to Node %s.", msg.Key, next)
-	return true
+func forwardingProcessor(msg *wendy.Message, next wendy.NodeID, forwardMangler func([]byte, wendy.NodeID) ([]byte, bool)) bool {
+
+	payload, toSend := forwardMangler(msg.Value, next)
+	msg.Value = payload
+
+	if toSend {
+		fmt.Printf("Forwarding message %s to Node %s.", msg.Key, next)
+	}
+
+	return toSend
 }
 
 func (driver *RoutingDriver) Join(bootstrapIP string, bootstrapPort int) error {

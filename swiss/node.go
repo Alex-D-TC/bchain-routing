@@ -25,12 +25,16 @@ func InitSwissNode(localIP string, port int, publicIP string, privKey *rsa.Priva
 
 	id := util.NodeIDFromStringSHA(fmt.Sprintf("%s:%d", localIP, port))
 
-	return &SwissNode{
-		driver:  routingdriver.MakeRoutingDriver(id, localIP, publicIP, port),
-		Id:      id,
-		started: false,
-		logger:  log.New(os.Stdout, "Swiss node ", log.Ldate|log.Ltime),
+	node := &SwissNode{
+		Id:         id,
+		started:    false,
+		logger:     log.New(os.Stdout, "Swiss node ", log.Ldate|log.Ltime),
+		PrivateKey: privKey,
 	}
+
+	node.driver = routingdriver.MakeRoutingDriver(id, localIP, publicIP, port, node.forwardingProcessor)
+
+	return node
 }
 
 func (node *SwissNode) Start(processor func(*Message)) {
@@ -59,7 +63,7 @@ func (node *SwissNode) Terminate() {
 
 func (node *SwissNode) Send(destination wendy.NodeID, payload []byte) error {
 
-	message, err := MakeMessage(&node.Id, node.PrivateKey, &destination, payload)
+	message, err := MakeMessage(node.Id, node.PrivateKey, destination, payload)
 	if err != nil {
 		return err
 	}
@@ -81,6 +85,32 @@ func (node *SwissNode) debug(msg string) {
 	node.logger.Println(msg)
 }
 
+func (node *SwissNode) forwardingProcessor(rawPayload []byte, next wendy.NodeID) ([]byte, bool) {
+	var msg Message
+	decoder, buffer := util.MakeDecoder()
+	buffer.Write(rawPayload)
+
+	err := decoder.Decode(&msg)
+	if err != nil {
+		node.debug(fmt.Sprintf("%s", err))
+		return rawPayload, false
+	}
+
+	err = msg.Relay(node.Id, next, node.PrivateKey)
+	if err != nil {
+		node.debug(fmt.Sprintf("%s", err))
+		return rawPayload, false
+	}
+
+	encoded, err := util.GobEncode(msg)
+	if err != nil {
+		node.debug(fmt.Sprintf("%s", err))
+		return rawPayload, false
+	}
+
+	return encoded, true
+}
+
 func (node *SwissNode) processRaw(rawMsg []byte) (*Message, error) {
 	var result Message
 
@@ -94,7 +124,7 @@ func (node *SwissNode) processRaw(rawMsg []byte) (*Message, error) {
 func (node *SwissNode) processMessage(rawMsg []byte, swissProcessor func(*Message)) {
 	msg, err := node.processRaw(rawMsg)
 	if err != nil {
-		fmt.Println(err)
+		node.logger.Println(err)
 	} else {
 		swissProcessor(msg)
 	}

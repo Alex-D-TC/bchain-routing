@@ -12,29 +12,26 @@ import (
 	"secondbit.org/wendy"
 )
 
-var messageHashFunction = crypto.SHA256
-var messageHashFunctionImpl = sha256.New()
-
 type Message struct {
-	Sender   *wendy.NodeID
-	Receiver *wendy.NodeID
+	Sender   wendy.NodeID
+	Receiver wendy.NodeID
 
-	SenderPubKey *rsa.PublicKey
+	SenderPubKey rsa.PublicKey
 
-	RelayChain []relayBlock
+	RelayChain []RelayBlock
 	Payload    []byte
 
 	Signature []byte
 }
 
-func MakeMessage(sender *wendy.NodeID, senderPrivateKey *rsa.PrivateKey, receiver *wendy.NodeID, payload []byte) (*Message, error) {
+func MakeMessage(sender wendy.NodeID, senderPrivateKey *rsa.PrivateKey, receiver wendy.NodeID, payload []byte) (*Message, error) {
 	msg := Message{
 		Sender:       sender,
 		Receiver:     receiver,
-		SenderPubKey: &senderPrivateKey.PublicKey,
+		SenderPubKey: senderPrivateKey.PublicKey,
 		RelayChain:   nil,
 		Payload:      payload,
-		Signature:    nil,
+		Signature:    []byte{},
 	}
 
 	bytes, err := util.GobEncode(msg)
@@ -42,7 +39,9 @@ func MakeMessage(sender *wendy.NodeID, senderPrivateKey *rsa.PrivateKey, receive
 		return nil, err
 	}
 
-	sign, err := rsa.SignPSS(rand.Reader, senderPrivateKey, messageHashFunction, messageHashFunctionImpl.Sum(bytes), nil)
+	hash := sha256.Sum256(bytes)
+
+	sign, err := rsa.SignPSS(rand.Reader, senderPrivateKey, crypto.SHA256, hash[:], nil)
 	if err != nil {
 		return nil, err
 	}
@@ -52,10 +51,10 @@ func MakeMessage(sender *wendy.NodeID, senderPrivateKey *rsa.PrivateKey, receive
 	return &msg, err
 }
 
-func (msg *Message) Relay(id *wendy.NodeID, nextID *wendy.NodeID, senderPrivateKey *rsa.PrivateKey) error {
+func (msg *Message) Relay(id wendy.NodeID, nextID wendy.NodeID, senderPrivateKey *rsa.PrivateKey) error {
 
 	currentID := msg.Sender
-	var prevBlock *relayBlock
+	var prevBlock *RelayBlock
 	if len(msg.RelayChain) > 0 {
 		currentID = msg.RelayChain[0].NextID
 		prevBlock = &msg.RelayChain[0]

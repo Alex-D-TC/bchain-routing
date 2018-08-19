@@ -120,7 +120,10 @@ func processCommand(rawLine string, node *swiss.SwissNode) {
 		}
 
 		fmt.Println(fmt.Sprintf("Sending %s to %s", message, receiver))
-		node.Send(id, []byte(message))
+		err = node.Send(id, []byte(message))
+		if err != nil {
+			fmt.Println(err)
+		}
 	}
 
 }

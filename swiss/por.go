@@ -10,40 +10,40 @@ import (
 	"secondbit.org/wendy"
 )
 
-var porHashFunc = crypto.SHA256
-var porHashFuncImpl = sha256.New()
+type RelayBlock struct {
+	ID     wendy.NodeID
+	NextID wendy.NodeID
+	PrevID wendy.NodeID
 
-type relayBlock struct {
-	ID     *wendy.NodeID
-	NextID *wendy.NodeID
-	PrevID *wendy.NodeID
-
-	PubKey     *rsa.PublicKey
-	PrevPubKey *rsa.PublicKey
+	PubKey     rsa.PublicKey
+	PrevPubKey rsa.PublicKey
 
 	Signature     []byte
 	PrevSignature []byte
 }
 
 type validationRelayBlock struct {
-	PrevID        *wendy.NodeID
-	PrevPubKey    *rsa.PublicKey
+	PrevID        wendy.NodeID
+	PrevPubKey    rsa.PublicKey
 	PrevSignature []byte
 
-	ID     *wendy.NodeID
-	PubKey *rsa.PublicKey
+	ID     wendy.NodeID
+	PubKey rsa.PublicKey
 
-	NextID *wendy.NodeID
+	NextID wendy.NodeID
 }
 
-func makeRelayBlock(id *wendy.NodeID, privKey *rsa.PrivateKey, nextID *wendy.NodeID, prevRelayBlock *relayBlock) (*relayBlock, error) {
-	block := relayBlock{
-		PrevID:        prevRelayBlock.ID,
-		PrevPubKey:    prevRelayBlock.PubKey,
-		PrevSignature: prevRelayBlock.Signature,
-		ID:            id,
-		PubKey:        &privKey.PublicKey,
-		NextID:        nextID,
+func makeRelayBlock(id wendy.NodeID, privKey *rsa.PrivateKey, nextID wendy.NodeID, prevRelayBlock *RelayBlock) (*RelayBlock, error) {
+	block := RelayBlock{
+		ID:     id,
+		PubKey: privKey.PublicKey,
+		NextID: nextID,
+	}
+
+	if prevRelayBlock != nil {
+		block.PrevID = prevRelayBlock.ID
+		block.PrevPubKey = prevRelayBlock.PubKey
+		block.PrevSignature = prevRelayBlock.Signature
 	}
 
 	blockBytes, err := block.ValidationBytes()
@@ -51,7 +51,9 @@ func makeRelayBlock(id *wendy.NodeID, privKey *rsa.PrivateKey, nextID *wendy.Nod
 		return nil, err
 	}
 
-	signature, err := privKey.Sign(rand.Reader, porHashFuncImpl.Sum(blockBytes), nil)
+	hash := sha256.Sum256(blockBytes)
+
+	signature, err := rsa.SignPSS(rand.Reader, privKey, crypto.SHA256, hash[:], nil)
 	if err == nil {
 		block.Signature = signature
 	}
@@ -59,7 +61,7 @@ func makeRelayBlock(id *wendy.NodeID, privKey *rsa.PrivateKey, nextID *wendy.Nod
 	return &block, err
 }
 
-func makeValidationRelayBlock(block *relayBlock) *validationRelayBlock {
+func makeValidationRelayBlock(block *RelayBlock) *validationRelayBlock {
 	return &validationRelayBlock{
 		PrevID:        block.PrevID,
 		PrevPubKey:    block.PrevPubKey,
@@ -70,10 +72,10 @@ func makeValidationRelayBlock(block *relayBlock) *validationRelayBlock {
 	}
 }
 
-func (block *relayBlock) ValidationBytes() ([]byte, error) {
+func (block *RelayBlock) ValidationBytes() ([]byte, error) {
 	return util.GobEncode(*makeValidationRelayBlock(block))
 }
 
-func Validate(blocks []relayBlock) bool {
+func Validate(blocks []RelayBlock) bool {
 	return true
 }

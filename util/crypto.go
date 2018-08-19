@@ -14,6 +14,10 @@ func Sign(key *rsa.PrivateKey, hashFunc crypto.Hash, hash [sha256.Size]byte) ([]
 	return rsa.SignPSS(rand.Reader, key, hashFunc, hash[:], nil)
 }
 
+func PubKeysEqual(k1 *rsa.PublicKey, k2 *rsa.PublicKey) bool {
+	return k1.N.Cmp(k2.N) == 0 && k1.E == k2.E
+}
+
 func LoadKeys(path string) (*rsa.PrivateKey, error) {
 	rawKey, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -41,8 +45,4 @@ func WriteKeys(path string, privKey *rsa.PrivateKey) error {
 	file.Write(privBytes)
 
 	return nil
-}
-
-func PubKeysEqual(k1 *rsa.PublicKey, k2 *rsa.PublicKey) bool {
-	return k1.N.Cmp(k2.N) == 0 && k1.E == k2.E
 }

@@ -1,10 +1,8 @@
 package util
 
 import (
-	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
-	"encoding/gob"
 	"encoding/hex"
 	"fmt"
 
@@ -42,26 +40,4 @@ func NodeIDFromHexForm(str string) (wendy.NodeID, error) {
 func NodeIDToString(id wendy.NodeID) string {
 	bytes := append(Uint64ToBytes(id[0]), Uint64ToBytes(id[1])...)
 	return hex.EncodeToString(bytes)
-}
-
-func MakeGobEncoder() (*gob.Encoder, *bytes.Buffer) {
-	buffer := bytes.NewBuffer([]byte{})
-	return gob.NewEncoder(buffer), buffer
-}
-
-func MakeGobDecoder() (*gob.Decoder, *bytes.Buffer) {
-	buffer := bytes.NewBuffer([]byte{})
-	return gob.NewDecoder(buffer), buffer
-}
-
-func GobEncode(data interface{}) ([]byte, error) {
-	encoder, buffer := MakeGobEncoder()
-	err := encoder.Encode(data)
-	return buffer.Bytes(), err
-}
-
-func GobDecode(rawData []byte, destination interface{}) error {
-	decoder, buffer := MakeGobDecoder()
-	buffer.Write(rawData)
-	return decoder.Decode(destination)
 }

@@ -90,10 +90,7 @@ func (node *SwissNode) forwardingProcessor(rawPayload []byte, next wendy.NodeID)
 	// Message decoding from raw data
 
 	var msg Message
-	decoder, buffer := util.MakeDecoder()
-	buffer.Write(rawPayload)
-
-	err := decoder.Decode(&msg)
+	err := util.GobDecode(rawPayload, &msg)
 	if err != nil {
 		node.debug(fmt.Sprintf("%s", err))
 		return rawPayload, false
@@ -126,11 +123,7 @@ func (node *SwissNode) forwardingProcessor(rawPayload []byte, next wendy.NodeID)
 
 func (node *SwissNode) processRaw(rawMsg []byte) (*Message, error) {
 	var result Message
-
-	decoder, buffer := util.MakeDecoder()
-	buffer.Write(rawMsg)
-
-	err := decoder.Decode(&result)
+	err := util.GobDecode(rawMsg, &result)
 	return &result, err
 }
 

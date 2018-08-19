@@ -45,7 +45,7 @@ func runCluster(localIP string, globalIP string, port int, keyPath string) {
 
 	node := swiss.InitSwissNode(localIP, port, globalIP, privKey)
 
-	fmt.Println("My id is: ", node.Id)
+	fmt.Println("My id is: ", node.ID)
 
 	fmt.Println("Listening...")
 	node.Start(swiss.DefaultMessageProcessor)

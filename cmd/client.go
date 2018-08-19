@@ -81,7 +81,7 @@ func runClient(localIP string, publicIP string, port int, bootstrapIP string, bo
 
 	}()
 
-	fmt.Println(fmt.Sprintf("Client id: %s", util.NodeIDToString(node.Id)))
+	fmt.Println(fmt.Sprintf("Client id: %s", util.NodeIDToString(node.ID)))
 
 	for {
 		fail := false

@@ -12,7 +12,7 @@ import (
 )
 
 type SwissNode struct {
-	Id         wendy.NodeID
+	ID         wendy.NodeID
 	PrivateKey *rsa.PrivateKey
 
 	started bool
@@ -26,7 +26,7 @@ func InitSwissNode(localIP string, port int, publicIP string, privKey *rsa.Priva
 	id := util.NodeIDFromStringSHA(fmt.Sprintf("%s:%d", localIP, port))
 
 	node := &SwissNode{
-		Id:         id,
+		ID:         id,
 		started:    false,
 		logger:     log.New(os.Stdout, "Swiss node ", log.Ldate|log.Ltime),
 		PrivateKey: privKey,
@@ -63,7 +63,7 @@ func (node *SwissNode) Terminate() {
 
 func (node *SwissNode) Send(destination wendy.NodeID, payload []byte) error {
 
-	message, err := MakeMessage(node.Id, node.PrivateKey, destination, payload)
+	message, err := MakeMessage(node.ID, node.PrivateKey, destination, payload)
 	if err != nil {
 		return err
 	}
@@ -98,7 +98,7 @@ func (node *SwissNode) forwardingProcessor(rawPayload []byte, next wendy.NodeID)
 
 	// Relaying and Validation
 
-	err = msg.Relay(node.Id, next, node.PrivateKey)
+	err = msg.Relay(node.ID, next, node.PrivateKey)
 	if err != nil {
 		node.debug(fmt.Sprintf("%s", err))
 		return rawPayload, false

@@ -14,6 +14,10 @@ func Sign(key *rsa.PrivateKey, hashFunc crypto.Hash, hash [sha256.Size]byte) ([]
 	return rsa.SignPSS(rand.Reader, key, hashFunc, hash[:], nil)
 }
 
+func Verify(pubKey *rsa.PublicKey, hash crypto.Hash, hashData []byte, signature []byte) error {
+	return rsa.VerifyPSS(pubKey, hash, hashData, signature, nil)
+}
+
 func PubKeysEqual(k1 *rsa.PublicKey, k2 *rsa.PublicKey) bool {
 	return k1.N.Cmp(k2.N) == 0 && k1.E == k2.E
 }

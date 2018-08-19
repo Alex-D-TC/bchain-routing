@@ -156,7 +156,7 @@ func signatureValidation(relayBlock *RelayBlock) error {
 	}
 	blockHash := sha256.Sum256(blockBytes)
 
-	return rsa.VerifyPSS(&relayBlock.PubKey, crypto.SHA256, blockHash[:], relayBlock.Signature, nil)
+	return util.Verify(&relayBlock.PubKey, crypto.SHA256, blockHash[:], relayBlock.Signature)
 }
 
 func DefaultMessageProcessor(msg *Message) {

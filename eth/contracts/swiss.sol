@@ -32,13 +32,12 @@ contract RelayHandler {
     event RelayHonored(address, uint);
     event RelayPaymentReqeusted(address, uint);
     
-    mapping(address => Relay[]) pendingToHonor;
+    mapping(address => Relay[]) relays;
     mapping(address => uint) nextToHonor;
 
     constructor() public {
     
     }
-
 
     function submitRelay(
         uint128 sentBytes, 
@@ -72,7 +71,50 @@ contract RelayHandler {
             por);
             
         address addr = addressFromBytes(relay.senderPublicKey);
-        return pendingToHonor[addr].push(relay);
+        return relays[addr].push(relay);
+    }
+
+    function getRelay(uint id) public view returns (
+        uint128 sentBytes,
+        bytes sentBytesSignature,
+        bytes senderPublicKey,
+        
+        uint128[] porId,
+        uint128[] porNextID,
+        uint128[] porPrevID,
+
+        bytes[] porPubKeyN,
+        uint[] porPubKeyE,
+
+        bytes[] porPrevPubKeyN,
+        uint[] porPrevPubKeyE,
+        
+        bytes[] porSignature,
+        bytes[] porPrevSignature) {
+
+        require(id < relays[msg.sender].length);
+
+        // Messy return of relay data
+        Relay storage relay = relays[msg.sender][id];
+
+        sentBytes = relay.sentBytes;
+        sentBytesSignature = relay.sentBytesSignature;
+        senderPublicKey = relay.senderPublicKey;
+                
+        porId = relay.porId;
+        porNextID = relay.porNextID;
+        porPrevID = relay.porPrevID;
+
+        porPubKeyN = relay.porPubKeyN;
+        porPubKeyE = relay.porPubKeyE;
+
+        porPrevPubKeyN = relay.porPrevPubKeyN;
+        porPrevPubKeyE = relay.porPrevPubKeyE;
+                
+        porSignature = relay.porSignature;
+        porPrevSignature = relay.porPrevSignature;
+        
+        return
     }
 
     function addressFromBytes(bytes memory key) private pure returns (address) {

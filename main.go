@@ -1,9 +1,9 @@
 package main
 
 import (
+	"crypto/ecdsa"
 	"fmt"
 
-	"github.com/alex-d-tc/bchain-routing/cmd"
 	eth "github.com/alex-d-tc/bchain-routing/eth/contracts"
 	"github.com/alex-d-tc/bchain-routing/swiss"
 	"github.com/alex-d-tc/bchain-routing/util"
@@ -13,7 +13,12 @@ import (
 
 func main() {
 	//testKeys("./general.key")
-	cmd.Execute()
+	key, err := util.LoadKeys("./general.key")
+	if err != nil {
+		panic(err)
+	}
+	testEthCall(key)
+	//cmd.Execute()
 }
 
 func testKeys(keyPath string) {
@@ -41,7 +46,7 @@ func testKeys(keyPath string) {
 	fmt.Println(util.PubKeysEqual(k1.PublicKey, k2.PublicKey))
 }
 
-func testEthCall() {
+func testEthCall(key ecdsa.PrivateKey) {
 
 	client, err := ethclient.Dial("https://ropsten.infura.io")
 	if err != nil {
@@ -58,6 +63,8 @@ func testEthCall() {
 	if err != nil {
 		panic(err)
 	}
+
+	fmt.Println(crypto.PublicKeyToAddress(key.PublicKey))
 
 	fmt.Println(balanceOf)
 }

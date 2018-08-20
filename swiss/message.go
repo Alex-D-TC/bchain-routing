@@ -2,8 +2,7 @@ package swiss
 
 import (
 	"bytes"
-	"crypto"
-	"crypto/rsa"
+	"crypto/ecdsa"
 	"crypto/sha256"
 	"encoding/binary"
 	"errors"
@@ -17,26 +16,24 @@ type Message struct {
 	Sender   wendy.NodeID
 	Receiver wendy.NodeID
 
-	SenderPubKey rsa.PublicKey
+	SenderPubKey ecdsa.PublicKey
 
 	RelayChain []RelayBlock
 
 	Payload            []byte
 	ByteCountHash      [sha256.Size]byte
-	ByteCountSignature []byte
+	ByteCountSignature util.EcdsaSignature
 
-	Signature []byte
+	Signature util.EcdsaSignature
 }
 
-func MakeMessage(sender wendy.NodeID, senderPrivateKey *rsa.PrivateKey, receiver wendy.NodeID, payload []byte) (*Message, error) {
+func MakeMessage(sender wendy.NodeID, senderPrivateKey *ecdsa.PrivateKey, receiver wendy.NodeID, payload []byte) (*Message, error) {
 	msg := Message{
-		Sender:             sender,
-		Receiver:           receiver,
-		SenderPubKey:       senderPrivateKey.PublicKey,
-		RelayChain:         nil,
-		Payload:            payload,
-		Signature:          nil,
-		ByteCountSignature: nil,
+		Sender:       sender,
+		Receiver:     receiver,
+		SenderPubKey: senderPrivateKey.PublicKey,
+		RelayChain:   nil,
+		Payload:      payload,
 	}
 
 	byteCountBytes := bytes.NewBuffer([]byte{})
@@ -45,21 +42,21 @@ func MakeMessage(sender wendy.NodeID, senderPrivateKey *rsa.PrivateKey, receiver
 	byteCountHash := sha256.Sum256(byteCountBytes.Bytes())
 	msg.ByteCountHash = byteCountHash
 
-	byteCountSignature, err := util.Sign(senderPrivateKey, crypto.SHA256, byteCountHash)
+	byteCountSignature, err := util.Sign(senderPrivateKey, byteCountHash)
 	if err != nil {
 		return nil, err
 	}
 
 	msg.ByteCountSignature = byteCountSignature
 
-	bytes, err := util.GobEncode(msg)
+	bytes, err := util.JSONEncode(msg)
 	if err != nil {
 		return nil, err
 	}
 
 	hash := sha256.Sum256(bytes)
 
-	sign, err := util.Sign(senderPrivateKey, crypto.SHA256, hash)
+	sign, err := util.Sign(senderPrivateKey, hash)
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +66,7 @@ func MakeMessage(sender wendy.NodeID, senderPrivateKey *rsa.PrivateKey, receiver
 	return &msg, err
 }
 
-func (msg *Message) Relay(id wendy.NodeID, nextID wendy.NodeID, senderPrivateKey *rsa.PrivateKey) error {
+func (msg *Message) Relay(id wendy.NodeID, nextID wendy.NodeID, senderPrivateKey *ecdsa.PrivateKey) error {
 
 	currentID := msg.Sender
 	var prevBlock *RelayBlock
@@ -121,9 +118,13 @@ func (msg *Message) ValidateRelayPath() error {
 		}
 
 		// common validation for both block types
-		err := signatureValidation(&relayBlock)
+		valid, err := signatureValidation(&relayBlock)
 		if err != nil {
 			return err
+		}
+
+		if !valid {
+			return errors.New("Relay block signature validation failed")
 		}
 
 		// The loop is done
@@ -160,21 +161,21 @@ func validateAgainstPrevious(relayBlock *RelayBlock, previousBlock *RelayBlock, 
 		return fmt.Errorf("Index %d: Previous PubKey of relay block does not match PubKey of previous block", i)
 	}
 
-	if !bytes.Equal(relayBlock.PrevSignature, previousBlock.Signature) {
+	if relayBlock.PrevSignature.Equal(previousBlock.Signature) {
 		return fmt.Errorf("Index %d: Previous signature of relay block does not match signature of previous block", i)
 	}
 
 	return nil
 }
 
-func signatureValidation(relayBlock *RelayBlock) error {
+func signatureValidation(relayBlock *RelayBlock) (bool, error) {
 	blockBytes, err := relayBlock.ValidationBytes()
 	if err != nil {
-		return err
+		return false, err
 	}
 	blockHash := sha256.Sum256(blockBytes)
 
-	return util.Verify(&relayBlock.PubKey, crypto.SHA256, blockHash[:], relayBlock.Signature)
+	return util.Verify(&relayBlock.PubKey, blockHash[:], relayBlock.Signature), nil
 }
 
 func DefaultMessageProcessor(msg *Message) {

@@ -1,7 +1,7 @@
 package swiss
 
 import (
-	"crypto/rsa"
+	"crypto/ecdsa"
 	"fmt"
 	"log"
 	"os"
@@ -13,7 +13,7 @@ import (
 
 type SwissNode struct {
 	ID         wendy.NodeID
-	PrivateKey *rsa.PrivateKey
+	PrivateKey *ecdsa.PrivateKey
 
 	started bool
 
@@ -21,7 +21,7 @@ type SwissNode struct {
 	logger *log.Logger
 }
 
-func InitSwissNode(localIP string, port int, publicIP string, privKey *rsa.PrivateKey) *SwissNode {
+func InitSwissNode(localIP string, port int, publicIP string, privKey *ecdsa.PrivateKey) *SwissNode {
 
 	id := util.NodeIDFromStringSHA(fmt.Sprintf("%s:%d", localIP, port))
 
@@ -68,7 +68,7 @@ func (node *SwissNode) Send(destination wendy.NodeID, payload []byte) error {
 		return err
 	}
 
-	encodingResult, err := util.GobEncode(*message)
+	encodingResult, err := util.JSONEncode(*message)
 	if err != nil {
 		return err
 	}
@@ -90,7 +90,7 @@ func (node *SwissNode) forwardingProcessor(rawPayload []byte, next wendy.NodeID)
 	// Message decoding from raw data
 
 	var msg Message
-	err := util.GobDecode(rawPayload, &msg)
+	err := util.JSONDecode(rawPayload, &msg)
 	if err != nil {
 		node.debug(fmt.Sprintf("%s", err))
 		return rawPayload, false
@@ -112,7 +112,7 @@ func (node *SwissNode) forwardingProcessor(rawPayload []byte, next wendy.NodeID)
 
 	// Message encoding to raw data
 
-	encoded, err := util.GobEncode(msg)
+	encoded, err := util.JSONEncode(msg)
 	if err != nil {
 		node.debug(fmt.Sprintf("%s", err))
 		return rawPayload, false
@@ -123,7 +123,7 @@ func (node *SwissNode) forwardingProcessor(rawPayload []byte, next wendy.NodeID)
 
 func (node *SwissNode) processRaw(rawMsg []byte) (*Message, error) {
 	var result Message
-	err := util.GobDecode(rawMsg, &result)
+	err := util.JSONDecode(rawMsg, &result)
 	return &result, err
 }
 

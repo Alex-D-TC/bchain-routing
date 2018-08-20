@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"crypto/rand"
-	"crypto/rsa"
 	"fmt"
 	"os"
 
@@ -33,7 +31,8 @@ func init() {
 }
 
 func generateKey(bits uint32, outPath string) {
-	key, err := rsa.GenerateKey(rand.Reader, int(bits))
+
+	key, err := util.GenerateECDSAKey()
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)

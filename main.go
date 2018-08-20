@@ -4,14 +4,40 @@ import (
 	"fmt"
 
 	eth "github.com/alex-d-tc/bchain-routing/eth/contracts"
+	"github.com/alex-d-tc/bchain-routing/swiss"
+	"github.com/alex-d-tc/bchain-routing/util"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 )
 
 func main() {
-
+	testKeys("./general.key")
 	//cmd.Execute()
+}
+
+func testKeys(keyPath string) {
+	k1, err := util.GenerateECDSAKey()
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	util.WriteKeys(keyPath, k1)
+	k2, err := util.LoadKeys(keyPath)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	msg, err := swiss.MakeMessage([2]uint64{0, 1}, k2, [2]uint64{1, 2}, []byte{1, 2, 3})
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	json, _ := util.JSONEncode(msg)
+
+	var message swiss.Message
+	fmt.Println(util.JSONDecode(json, &message))
+
+	fmt.Println(util.PubKeysEqual(&k1.PublicKey, &k2.PublicKey))
 }
 
 func testEthCall() {
@@ -32,8 +58,5 @@ func testEthCall() {
 		panic(err)
 	}
 
-	key, _ := crypto.GenerateKey()
-
 	fmt.Println(balanceOf)
-
 }

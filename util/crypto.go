@@ -1,34 +1,56 @@
 package util
 
 import (
-	"crypto"
+	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/rand"
-	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/x509"
 	"io/ioutil"
+	"math/big"
 	"os"
 )
 
-func Sign(key *rsa.PrivateKey, hashFunc crypto.Hash, hash [sha256.Size]byte) ([]byte, error) {
-	return rsa.SignPSS(rand.Reader, key, hashFunc, hash[:], nil)
+type EcdsaSignature struct {
+	R *big.Int
+	S *big.Int
 }
 
-func Verify(pubKey *rsa.PublicKey, hash crypto.Hash, hashData []byte, signature []byte) error {
-	return rsa.VerifyPSS(pubKey, hash, hashData, signature, nil)
+func (sig EcdsaSignature) Equal(oth EcdsaSignature) bool {
+	return sig.R.Cmp(oth.R) == 0 && sig.S.Cmp(oth.S) == 0
 }
 
-func PubKeysEqual(k1 *rsa.PublicKey, k2 *rsa.PublicKey) bool {
-	return k1.N.Cmp(k2.N) == 0 && k1.E == k2.E
+func GenerateECDSAKey() (*ecdsa.PrivateKey, error) {
+	return ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
 }
 
-func LoadKeys(path string) (*rsa.PrivateKey, error) {
+func Sign(key *ecdsa.PrivateKey, hash [sha256.Size]byte) (EcdsaSignature, error) {
+	r, s, err := ecdsa.Sign(rand.Reader, key, hash[:])
+	if err != nil {
+		return EcdsaSignature{}, err
+	}
+
+	return EcdsaSignature{
+		R: r,
+		S: s,
+	}, err
+}
+
+func Verify(pubKey *ecdsa.PublicKey, hashData []byte, signature EcdsaSignature) bool {
+	return ecdsa.Verify(pubKey, hashData, signature.R, signature.S)
+}
+
+func PubKeysEqual(k1 *ecdsa.PublicKey, k2 *ecdsa.PublicKey) bool {
+	return k1.X.Cmp(k2.X) == 0 && k1.Y.Cmp(k2.Y) == 0
+}
+
+func LoadKeys(path string) (*ecdsa.PrivateKey, error) {
 	rawKey, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
 
-	privKey, err := x509.ParsePKCS1PrivateKey(rawKey)
+	privKey, err := x509.ParseECPrivateKey(rawKey)
 	if err != nil {
 		return nil, err
 	}
@@ -36,7 +58,7 @@ func LoadKeys(path string) (*rsa.PrivateKey, error) {
 	return privKey, nil
 }
 
-func WriteKeys(path string, privKey *rsa.PrivateKey) error {
+func WriteKeys(path string, privKey *ecdsa.PrivateKey) error {
 
 	file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0666)
 	defer file.Close()
@@ -45,7 +67,11 @@ func WriteKeys(path string, privKey *rsa.PrivateKey) error {
 		return err
 	}
 
-	privBytes := x509.MarshalPKCS1PrivateKey(privKey)
+	privBytes, err := x509.MarshalECPrivateKey(privKey)
+	if err != nil {
+		return err
+	}
+
 	file.Write(privBytes)
 
 	return nil

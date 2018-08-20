@@ -1,48 +1,68 @@
 pragma solidity ^0.4.24;
 pragma experimental ABIEncoderV2;
 
-contract SwissContract {
+contract RelayHandler {
 
-    struct RelayBlock {
-        uint128 id;
-        uint128 nextID;
-        uint128 prevID;
+    struct ProofOfRelay {
 
-        bytes pubKey;
-        bytes prevPubKey;
+        uint128[] porId;
+        uint128[] porNextID;
+        uint128[] porPrevID;
 
-        bytes signature;
-        bytes prevSignature;
+        bytes[] porPubKeyN;
+        uint[] porPubKeyE;
+
+        bytes[] porPrevPubKeyN;
+        uint[] porPrevPubKeyE;
+        
+        bytes[] porSignature;
+        bytes[] porPrevSignature;
     }
 
     struct Relay {
-        
+
         uint128 sentBytes;
         bytes sentBytesSignature;
 
         bytes senderPublicKey;
-        bytes senderPrivateKey;
 
-        RelayBlock[] por;
+        ProofOfRelay por;
     }
+
+    event RelayHonored(address, Relay, uint);
+    
+    mapping(address => Relay[]) pendingToHonor;
+    mapping(address => uint) nextToHonor;
 
     constructor() public {
-
+    
     }
 
-    function submitRelay(Relay relay) public {
 
+    function submitRelay(
+		uint128 sentBytes, 
+		bytes memory sentBytesSignature, 
+		bytes memory senderPublicKey, 
+		ProofOfRelay memory por) public {
+        
+        Relay memory relay = Relay(sentBytes, sentBytesSignature, senderPublicKey, por);
+		
+		address addr = addressFromBytes(relay.senderPublicKey);
+        pendingToHonor[addr].push(relay);
     }
 
-    function addressFromBytes(bytes key) private pure returns (address) {
+    function addressFromBytes(bytes memory key) private pure returns (address) {
 
         require(key.length >= 20, "The key must be of at least 20 bytes");
 
         uint160 result = 0;
 
-        for(uint i = 0; i < 20; ++i) {
-            result = result + uint160(key[i]);
+        uint i = key.length - 1;
+        for(uint iterations = 0; iterations < 20; ++iterations) {
+            bytes20 b = key[i];
+            result = result + uint160(b);
             result = result << 8;
+            --i;
         }
         
         return address(result);

@@ -6,6 +6,7 @@ contract RelayHandler {
     struct Relay {
 
         uint128 sentBytes;
+        uint256 sentBytesHash;
         bytes sentBytesSignature;
 
         bytes senderPublicKey;
@@ -38,11 +39,11 @@ contract RelayHandler {
     mapping(address => uint) nextToHonor;
 
     constructor() public {
-    
     }
 
     function submitRelay(
-        uint128 _sentBytes, 
+        uint128 _sentBytes,
+        uint256 _sentBytesHash, 
         bytes memory _sentBytesSignature, 
         bytes memory _senderPublicKey, 
         uint128[][3] memory _ids,
@@ -64,11 +65,13 @@ contract RelayHandler {
             porRaw: _porRaw
         });
         
-        Relay memory relay = Relay(
-            _sentBytes, 
-            _sentBytesSignature, 
-            _senderPublicKey, 
-            por);
+        Relay memory relay = Relay({
+            sentBytes: _sentBytes,
+            sentBytesHash: _sentBytesHash,
+            sentBytesSignature: _sentBytesSignature,
+            senderPublicKey: _senderPublicKey,
+            por: por
+        });
             
         address addr = addressFromBytes(relay.senderPublicKey);
         return relays[addr].push(relay);

@@ -5,6 +5,7 @@ import (
 	"crypto"
 	"crypto/rsa"
 	"crypto/sha256"
+	"encoding/binary"
 	"errors"
 	"fmt"
 
@@ -19,20 +20,37 @@ type Message struct {
 	SenderPubKey rsa.PublicKey
 
 	RelayChain []RelayBlock
-	Payload    []byte
+
+	Payload            []byte
+	ByteCountHash      [sha256.Size]byte
+	ByteCountSignature []byte
 
 	Signature []byte
 }
 
 func MakeMessage(sender wendy.NodeID, senderPrivateKey *rsa.PrivateKey, receiver wendy.NodeID, payload []byte) (*Message, error) {
 	msg := Message{
-		Sender:       sender,
-		Receiver:     receiver,
-		SenderPubKey: senderPrivateKey.PublicKey,
-		RelayChain:   nil,
-		Payload:      payload,
-		Signature:    []byte{},
+		Sender:             sender,
+		Receiver:           receiver,
+		SenderPubKey:       senderPrivateKey.PublicKey,
+		RelayChain:         nil,
+		Payload:            payload,
+		Signature:          nil,
+		ByteCountSignature: nil,
 	}
+
+	byteCountBytes := bytes.NewBuffer([]byte{})
+	binary.Write(byteCountBytes, binary.BigEndian, len(payload))
+
+	byteCountHash := sha256.Sum256(byteCountBytes.Bytes())
+	msg.ByteCountHash = byteCountHash
+
+	byteCountSignature, err := util.Sign(senderPrivateKey, crypto.SHA256, byteCountHash)
+	if err != nil {
+		return nil, err
+	}
+
+	msg.ByteCountSignature = byteCountSignature
 
 	bytes, err := util.GobEncode(msg)
 	if err != nil {

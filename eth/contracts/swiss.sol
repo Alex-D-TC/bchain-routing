@@ -19,6 +19,28 @@ contract RelayHandler {
         bytes[] porPrevSignature;
     }
 
+    struct PORIds {
+
+        uint128[] porId;
+        uint128[] porNextID;
+        uint128[] porPrevID;
+    }
+
+    struct PORKeys {
+
+        bytes[] porPubKeyN;
+        uint[] porPubKeyE;
+
+        bytes[] porPrevPubKeyN;
+        uint[] porPrevPubKeyE;
+    }
+
+    struct PORSignatures {
+
+        bytes[] porSignature;
+        bytes[] porPrevSignature;
+    }
+
     struct Relay {
 
         uint128 sentBytes;
@@ -29,7 +51,7 @@ contract RelayHandler {
         ProofOfRelay por;
     }
 
-    event RelayHonored(address, Relay, uint);
+    event RelayHonored(address, uint);
     
     mapping(address => Relay[]) pendingToHonor;
     mapping(address => uint) nextToHonor;
@@ -40,14 +62,37 @@ contract RelayHandler {
 
 
     function submitRelay(
-		uint128 sentBytes, 
-		bytes memory sentBytesSignature, 
-		bytes memory senderPublicKey, 
-		ProofOfRelay memory por) public {
+        uint128 sentBytes, 
+        bytes memory sentBytesSignature, 
+        bytes memory senderPublicKey, 
+        uint128[][3] memory ids,
+        bytes[][2] memory keysN,
+        uint[][2] memory keysE,
+        bytes[][2] memory signatures) public {
         
-        Relay memory relay = Relay(sentBytes, sentBytesSignature, senderPublicKey, por);
-		
-		address addr = addressFromBytes(relay.senderPublicKey);
+        ProofOfRelay memory por = ProofOfRelay({
+            porId: ids[0],
+            porNextID: ids[1],
+            porPrevID: ids[2],
+
+            porPubKeyN: keysN[0],
+            porPubKeyE: keysE[0],
+
+            porPrevPubKeyN: keysN[1],
+            porPrevPubKeyE: keysE[1],
+            
+            porSignature: signatures[0],
+            porPrevSignature: signatures[1]
+            });
+        
+        
+        Relay memory relay = Relay(
+            sentBytes, 
+            sentBytesSignature, 
+            senderPublicKey, 
+            por);
+            
+        address addr = addressFromBytes(relay.senderPublicKey);
         pendingToHonor[addr].push(relay);
     }
 

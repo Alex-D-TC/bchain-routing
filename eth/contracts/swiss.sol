@@ -40,81 +40,69 @@ contract RelayHandler {
     }
 
     function submitRelay(
-        uint128 sentBytes, 
-        bytes memory sentBytesSignature, 
-        bytes memory senderPublicKey, 
-        uint128[][3] memory ids,
-        bytes[][2] memory keysN,
-        uint[][2] memory keysE,
-        bytes[][2] memory signatures) public returns(uint) {
+        uint128 _sentBytes, 
+        bytes memory _sentBytesSignature, 
+        bytes memory _senderPublicKey, 
+        uint128[][3] memory _ids,
+        bytes[][2] memory _keysN,
+        uint[][2] memory _keysE,
+        bytes[][2] memory _signatures) public returns(uint) {
         
         ProofOfRelay memory por = ProofOfRelay({
-            porId: ids[0],
-            porNextID: ids[1],
-            porPrevID: ids[2],
-
-            porPubKeyN: keysN[0],
-            porPubKeyE: keysE[0],
-
-            porPrevPubKeyN: keysN[1],
-            porPrevPubKeyE: keysE[1],
-            
-            porSignature: signatures[0],
-            porPrevSignature: signatures[1]
-            });
-        
+            porId: _ids[0],
+            porNextID: _ids[1],
+            porPrevID: _ids[2],
+            porPubKeyN: _keysN[0],
+            porPubKeyE: _keysE[0],
+            porPrevPubKeyN: _keysN[1],
+            porPrevPubKeyE: _keysE[1],
+            porSignature: _signatures[0],
+            porPrevSignature: _signatures[1]
+        });
         
         Relay memory relay = Relay(
-            sentBytes, 
-            sentBytesSignature, 
-            senderPublicKey, 
+            _sentBytes, 
+            _sentBytesSignature, 
+            _senderPublicKey, 
             por);
             
         address addr = addressFromBytes(relay.senderPublicKey);
         return relays[addr].push(relay);
     }
 
-    function getRelay(uint id) public view returns (
+    function getRelay(address _addr, uint _id) public view returns (
         uint128 sentBytes,
         bytes sentBytesSignature,
         bytes senderPublicKey,
         
-        uint128[] porId,
-        uint128[] porNextID,
-        uint128[] porPrevID,
+        uint128[][3] ids,
+        bytes[][2] keysN,
+        uint[][2] keysE,
+        bytes[][2] signatures) {
 
-        bytes[] porPubKeyN,
-        uint[] porPubKeyE,
-
-        bytes[] porPrevPubKeyN,
-        uint[] porPrevPubKeyE,
-        
-        bytes[] porSignature,
-        bytes[] porPrevSignature) {
-
-        require(id < relays[msg.sender].length);
+        require(_id < relays[_addr].length, "Relay with the given id does not exist");
 
         // Messy return of relay data
-        Relay storage relay = relays[msg.sender][id];
+        Relay storage relay = relays[_addr][_id];
 
         sentBytes = relay.sentBytes;
         sentBytesSignature = relay.sentBytesSignature;
         senderPublicKey = relay.senderPublicKey;
                 
-        porId = relay.porId;
-        porNextID = relay.porNextID;
-        porPrevID = relay.porPrevID;
+        ids[0] = relay.por.porId;
+        ids[1] = relay.por.porNextID;
+        ids[2] = relay.por.porPrevID;
 
-        porPubKeyN = relay.porPubKeyN;
-        porPubKeyE = relay.porPubKeyE;
+        keysN[0] = relay.por.porPubKeyN;
+        keysE[0] = relay.por.porPubKeyE;
 
-        porPrevPubKeyN = relay.porPrevPubKeyN;
-        porPrevPubKeyE = relay.porPrevPubKeyE;
+        keysN[1] = relay.por.porPrevPubKeyN;
+        keysE[1] = relay.por.porPrevPubKeyE;
                 
-        porSignature = relay.porSignature;
-        porPrevSignature = relay.porPrevSignature;
+        signatures[0] = relay.por.porSignature;
+        signatures[1] = relay.por.porPrevSignature;
         
-        return
+        return;
     }
 
     function addressFromBytes(bytes memory key) private pure returns (address) {

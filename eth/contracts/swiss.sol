@@ -16,9 +16,9 @@ contract RelayHandler {
     struct ProofOfRelay {
 
         uint128[] porId;
-        uint128[] porNextID;
         uint128[] porPrevID;
-
+        uint128[] porNextID;
+        
         bytes[] porPubKeyN;
         uint[] porPubKeyE;
 

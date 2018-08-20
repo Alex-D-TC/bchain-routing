@@ -26,6 +26,8 @@ contract RelayHandler {
         uint[] porPrevPubKeyE;
         
         bytes[] porSignature;
+        bytes[] porRaw;
+
         bytes[] porPrevSignature;
     }
 
@@ -46,7 +48,8 @@ contract RelayHandler {
         uint128[][3] memory _ids,
         bytes[][2] memory _keysN,
         uint[][2] memory _keysE,
-        bytes[][2] memory _signatures) public returns(uint) {
+        bytes[][2] memory _signatures,
+        bytes[] memory _porRaw) public returns(uint) {
         
         ProofOfRelay memory por = ProofOfRelay({
             porId: _ids[0],
@@ -57,7 +60,8 @@ contract RelayHandler {
             porPrevPubKeyN: _keysN[1],
             porPrevPubKeyE: _keysE[1],
             porSignature: _signatures[0],
-            porPrevSignature: _signatures[1]
+            porPrevSignature: _signatures[1],
+            porRaw: _porRaw
         });
         
         Relay memory relay = Relay(

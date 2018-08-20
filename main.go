@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 
+	"github.com/alex-d-tc/bchain-routing/cmd"
 	eth "github.com/alex-d-tc/bchain-routing/eth/contracts"
 	"github.com/alex-d-tc/bchain-routing/swiss"
 	"github.com/alex-d-tc/bchain-routing/util"
@@ -11,8 +12,8 @@ import (
 )
 
 func main() {
-	testKeys("./general.key")
-	//cmd.Execute()
+	//testKeys("./general.key")
+	cmd.Execute()
 }
 
 func testKeys(keyPath string) {

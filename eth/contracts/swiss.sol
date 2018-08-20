@@ -3,6 +3,16 @@ pragma experimental ABIEncoderV2;
 
 contract RelayHandler {
 
+    struct Relay {
+
+        uint128 sentBytes;
+        bytes sentBytesSignature;
+
+        bytes senderPublicKey;
+
+        ProofOfRelay por;
+    }
+
     struct ProofOfRelay {
 
         uint128[] porId;
@@ -19,39 +29,8 @@ contract RelayHandler {
         bytes[] porPrevSignature;
     }
 
-    struct PORIds {
-
-        uint128[] porId;
-        uint128[] porNextID;
-        uint128[] porPrevID;
-    }
-
-    struct PORKeys {
-
-        bytes[] porPubKeyN;
-        uint[] porPubKeyE;
-
-        bytes[] porPrevPubKeyN;
-        uint[] porPrevPubKeyE;
-    }
-
-    struct PORSignatures {
-
-        bytes[] porSignature;
-        bytes[] porPrevSignature;
-    }
-
-    struct Relay {
-
-        uint128 sentBytes;
-        bytes sentBytesSignature;
-
-        bytes senderPublicKey;
-
-        ProofOfRelay por;
-    }
-
     event RelayHonored(address, uint);
+    event RelayPaymentReqeusted(address, uint);
     
     mapping(address => Relay[]) pendingToHonor;
     mapping(address => uint) nextToHonor;
@@ -68,7 +47,7 @@ contract RelayHandler {
         uint128[][3] memory ids,
         bytes[][2] memory keysN,
         uint[][2] memory keysE,
-        bytes[][2] memory signatures) public {
+        bytes[][2] memory signatures) public returns(uint) {
         
         ProofOfRelay memory por = ProofOfRelay({
             porId: ids[0],
@@ -93,7 +72,7 @@ contract RelayHandler {
             por);
             
         address addr = addressFromBytes(relay.senderPublicKey);
-        pendingToHonor[addr].push(relay);
+        return pendingToHonor[addr].push(relay);
     }
 
     function addressFromBytes(bytes memory key) private pure returns (address) {

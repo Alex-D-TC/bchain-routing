@@ -13,8 +13,8 @@ type RelayBlock struct {
 	NextID wendy.NodeID
 	PrevID wendy.NodeID
 
-	PubKey     ecdsa.PublicKey
-	PrevPubKey ecdsa.PublicKey
+	PubKey     util.ECDSAPubKey
+	PrevPubKey util.ECDSAPubKey
 
 	Signature     util.EcdsaSignature
 	PrevSignature util.EcdsaSignature
@@ -22,11 +22,11 @@ type RelayBlock struct {
 
 type validationRelayBlock struct {
 	PrevID        wendy.NodeID
-	PrevPubKey    ecdsa.PublicKey
+	PrevPubKey    util.ECDSAPubKey
 	PrevSignature util.EcdsaSignature
 
 	ID     wendy.NodeID
-	PubKey ecdsa.PublicKey
+	PubKey util.ECDSAPubKey
 
 	NextID wendy.NodeID
 }
@@ -34,7 +34,7 @@ type validationRelayBlock struct {
 func makeRelayBlock(id wendy.NodeID, privKey *ecdsa.PrivateKey, nextID wendy.NodeID, prevRelayBlock *RelayBlock) (*RelayBlock, error) {
 	block := RelayBlock{
 		ID:     id,
-		PubKey: privKey.PublicKey,
+		PubKey: util.MakeFromPubKey(privKey.PublicKey, util.CurveType),
 		NextID: nextID,
 	}
 

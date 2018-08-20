@@ -37,7 +37,7 @@ func testKeys(keyPath string) {
 	var message swiss.Message
 	fmt.Println(util.JSONDecode(json, &message))
 
-	fmt.Println(util.PubKeysEqual(&k1.PublicKey, &k2.PublicKey))
+	fmt.Println(util.PubKeysEqual(k1.PublicKey, k2.PublicKey))
 }
 
 func testEthCall() {

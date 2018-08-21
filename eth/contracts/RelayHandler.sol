@@ -6,9 +6,8 @@ contract RelayHandler {
     struct Relay {
 
         uint128 sentBytes;
-        uint256 sentBytesHash;
+        bytes sentBytesHash;
         bytes sentBytesSignature;
-
         bytes senderPublicKey;
 
         ProofOfRelay por;
@@ -16,20 +15,17 @@ contract RelayHandler {
 
     struct ProofOfRelay {
 
-        uint128[] porId;
+        uint128[] porID;
         uint128[] porPrevID;
         uint128[] porNextID;
         
-        bytes[] porPubKeyN;
-        uint[] porPubKeyE;
-
-        bytes[] porPrevPubKeyN;
-        uint[] porPrevPubKeyE;
+        bytes[] porPubkey;
+        bytes[] porPrevPubkey;
         
         bytes[] porSignature;
-        bytes[] porRaw;
-
         bytes[] porPrevSignature;
+        
+        bytes[] porRawHash;
     }
 
     event RelayHonored(address, uint);
@@ -43,26 +39,23 @@ contract RelayHandler {
 
     function submitRelay(
         uint128 _sentBytes,
-        uint256 _sentBytesHash, 
+        bytes _sentBytesHash, 
         bytes memory _sentBytesSignature, 
         bytes memory _senderPublicKey, 
         uint128[][3] memory _ids,
-        bytes[][2] memory _keysN,
-        uint[][2] memory _keysE,
+        bytes[][2] memory _keys,
         bytes[][2] memory _signatures,
-        bytes[] memory _porRaw) public returns(uint) {
+        bytes[] memory _porRawHash) public returns(uint) {
         
         ProofOfRelay memory por = ProofOfRelay({
-            porId: _ids[0],
+            porID: _ids[0],
             porNextID: _ids[1],
             porPrevID: _ids[2],
-            porPubKeyN: _keysN[0],
-            porPubKeyE: _keysE[0],
-            porPrevPubKeyN: _keysN[1],
-            porPrevPubKeyE: _keysE[1],
+            porPubkey: _keys[0],
+            porPrevPubkey: _keys[1],
             porSignature: _signatures[0],
             porPrevSignature: _signatures[1],
-            porRaw: _porRaw
+            porRawHash: _porRawHash
         });
         
         Relay memory relay = Relay({
@@ -83,8 +76,7 @@ contract RelayHandler {
         bytes senderPublicKey,
         
         uint128[][3] ids,
-        bytes[][2] keysN,
-        uint[][2] keysE,
+        bytes[][2] keys,
         bytes[][2] signatures) {
 
         require(_id < relays[_addr].length, "Relay with the given id does not exist");
@@ -96,15 +88,12 @@ contract RelayHandler {
         sentBytesSignature = relay.sentBytesSignature;
         senderPublicKey = relay.senderPublicKey;
                 
-        ids[0] = relay.por.porId;
+        ids[0] = relay.por.porID;
         ids[1] = relay.por.porNextID;
         ids[2] = relay.por.porPrevID;
 
-        keysN[0] = relay.por.porPubKeyN;
-        keysE[0] = relay.por.porPubKeyE;
-
-        keysN[1] = relay.por.porPrevPubKeyN;
-        keysE[1] = relay.por.porPrevPubKeyE;
+        keys[0] = relay.por.porPubkey;
+        keys[1] = relay.por.porPrevPubkey;
                 
         signatures[0] = relay.por.porSignature;
         signatures[1] = relay.por.porPrevSignature;

@@ -1,6 +1,9 @@
 
 # Created by https://www.gitignore.io/api/go,vim,visualstudiocode
 
+## go-ethereum ##
+*/eth/build-go/*
+
 ### Go ###
 # Binaries for programs and plugins
 *.exe

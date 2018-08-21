@@ -16,7 +16,7 @@ type EcdsaSignature struct {
 	S *big.Int
 }
 
-const CurveType EllipticCurve = P521
+const CurveType EllipticCurve = P256
 
 type EllipticCurve uint
 

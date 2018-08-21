@@ -9,6 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/core/types"
 
+	"github.com/alex-d-tc/bchain-routing/cmd"
 	eth "github.com/alex-d-tc/bchain-routing/eth/build-go"
 	"github.com/alex-d-tc/bchain-routing/swiss"
 	"github.com/alex-d-tc/bchain-routing/util"
@@ -22,21 +23,44 @@ func main() {
 
 	//generateEthAddress("eth.key")
 	// Generated 0x4Ee601163EEc9863c6f966be984D2AF5E23185D2
-
-	key, err := crypto.LoadECDSA("eth.key")
-	if err != nil {
-		panic(err)
-	}
-
-	client, _ := makeClient("https://ropsten.infura.io")
+	//client, _ := makeClient("https://ropsten.infura.io")
 	//printBalance(client, crypto.PubkeyToAddress(key.PublicKey))
 
 	//testSendEth(key)
 	//testEthCall(client, key)
 	//testSimpleCall(client, key)
 	//testContractDeploy(client, key)
-	testSwissMint(client, key, 300, "0x158d29DBa40Ea09D371b23D0F20F30EedC2A4588", "0xa7ea06f6e990c26439ebd2691a47610db41580d8")
-	//cmd.Execute()
+	//testSwissMint(client, key, 300, "0x158d29DBa40Ea09D371b23D0F20F30EedC2A4588", "0xa7ea06f6e990c26439ebd2691a47610db41580d8")
+	//testMsg()
+	cmd.Execute()
+}
+
+func testMsg() {
+
+	key, err := crypto.LoadECDSA("eth.key")
+	if err != nil {
+		panic(err)
+	}
+
+	msg, err := swiss.MakeMessage([2]uint64{1, 2}, key, [2]uint64{0, 1}, []byte{1, 3, 4})
+	if err != nil {
+		panic(err)
+	}
+
+	encoded, err := util.JSONEncode(msg)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(msg)
+
+	var resMsg swiss.Message
+	err = util.JSONDecode(encoded, &resMsg)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(resMsg)
 }
 
 func readEthAddress(keyPath string) (*ecdsa.PrivateKey, error) {

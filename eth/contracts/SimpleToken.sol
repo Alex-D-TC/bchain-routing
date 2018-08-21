@@ -13,7 +13,7 @@ contract SimpleToken {
 
     event Transfer(address indexed from, address indexed to, uint256 value);
 
-    constructor(string _name, string _symbol, uint _maxSupply) {
+    constructor(string _name, string _symbol, uint _maxSupply) public {
         name = _name;
         symbol = _symbol;
         maxSupply = _maxSupply;

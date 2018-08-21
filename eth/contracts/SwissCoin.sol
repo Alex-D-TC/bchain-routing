@@ -1,10 +1,10 @@
 pragma solidity ^0.4.24;
 
-import "./dep-contracts/ICOToken.sol";
+import "./SimpleToken.sol";
 
-contract SwissCoin is ICOToken {
+contract SwissCoin is SimpleToken {
 
-    constructor(uint8 _decimals) ICOToken("Swiss", "SWS", _decimals) public
+    constructor(uint _maxSupply) SimpleToken("Swiss", "SWS", _maxSupply) public
     {
     }
 }

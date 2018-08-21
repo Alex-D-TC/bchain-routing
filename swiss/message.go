@@ -16,24 +16,24 @@ type Message struct {
 	Sender   wendy.NodeID
 	Receiver wendy.NodeID
 
-	SenderPubKey util.ECDSAPubKey
+	SenderPubKeyRaw []byte
 
 	RelayChain []RelayBlock
 
 	Payload            []byte
 	ByteCountHash      [sha256.Size]byte
-	ByteCountSignature util.EcdsaSignature
+	ByteCountSignature []byte
 
-	Signature util.EcdsaSignature
+	Signature []byte
 }
 
 func MakeMessage(sender wendy.NodeID, senderPrivateKey *ecdsa.PrivateKey, receiver wendy.NodeID, payload []byte) (*Message, error) {
 	msg := Message{
-		Sender:       sender,
-		Receiver:     receiver,
-		SenderPubKey: util.MakeFromPubKey(senderPrivateKey.PublicKey, util.CurveType),
-		RelayChain:   nil,
-		Payload:      payload,
+		Sender:          sender,
+		Receiver:        receiver,
+		SenderPubKeyRaw: util.MarshalPubKey(&senderPrivateKey.PublicKey),
+		RelayChain:      nil,
+		Payload:         payload,
 	}
 
 	byteCountBytes := bytes.NewBuffer([]byte{})
@@ -141,7 +141,17 @@ func validateRootBlockAgainstSenderData(relayBlock *RelayBlock, msg *Message) er
 		return errors.New("ID of the relay chain root is not the same as the sender ID")
 	}
 
-	if !util.PubKeysEqual(relayBlock.PubKey.ToUsableForm(), msg.SenderPubKey.ToUsableForm()) {
+	relayKey, err := util.UnmarshalPubKey(relayBlock.PubKeyRaw)
+	if err != nil {
+		return err
+	}
+
+	senderKey, err := util.UnmarshalPubKey(msg.SenderPubKeyRaw)
+	if err != nil {
+		return err
+	}
+
+	if !util.PubKeysEqual(*relayKey, *senderKey) {
 		return errors.New("Public key of the relay chain root is not the same as the sender public key")
 	}
 
@@ -157,11 +167,21 @@ func validateAgainstPrevious(relayBlock *RelayBlock, previousBlock *RelayBlock, 
 		return fmt.Errorf("Index %d: Previous ID of relay block does not match ID of previous block", i)
 	}
 
-	if !util.PubKeysEqual(relayBlock.PrevPubKey.ToUsableForm(), previousBlock.PubKey.ToUsableForm()) {
+	relayKey, err := util.UnmarshalPubKey(relayBlock.PubKeyRaw)
+	if err != nil {
+		return err
+	}
+
+	prevRelayKey, err := util.UnmarshalPubKey(previousBlock.PubKeyRaw)
+	if err != nil {
+		return err
+	}
+
+	if !util.PubKeysEqual(*relayKey, *prevRelayKey) {
 		return fmt.Errorf("Index %d: Previous PubKey of relay block does not match PubKey of previous block", i)
 	}
 
-	if relayBlock.PrevSignature.Equal(previousBlock.Signature) {
+	if !bytes.Equal(relayBlock.PrevSignature, previousBlock.Signature) {
 		return fmt.Errorf("Index %d: Previous signature of relay block does not match signature of previous block", i)
 	}
 
@@ -175,7 +195,12 @@ func signatureValidation(relayBlock *RelayBlock) (bool, error) {
 	}
 	blockHash := sha256.Sum256(blockBytes)
 
-	return util.Verify(relayBlock.PubKey.ToUsableForm(), blockHash[:], relayBlock.Signature), nil
+	relayKey, err := util.UnmarshalPubKey(relayBlock.PubKeyRaw)
+	if err != nil {
+		return false, err
+	}
+
+	return util.Verify(*relayKey, blockHash[:], relayBlock.Signature), nil
 }
 
 func DefaultMessageProcessor(msg *Message) {

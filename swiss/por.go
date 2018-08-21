@@ -13,34 +13,34 @@ type RelayBlock struct {
 	NextID wendy.NodeID
 	PrevID wendy.NodeID
 
-	PubKey     util.ECDSAPubKey
-	PrevPubKey util.ECDSAPubKey
+	PubKeyRaw     []byte
+	PrevPubKeyRaw []byte
 
-	Signature     util.EcdsaSignature
-	PrevSignature util.EcdsaSignature
+	Signature     []byte
+	PrevSignature []byte
 }
 
 type validationRelayBlock struct {
 	PrevID        wendy.NodeID
-	PrevPubKey    util.ECDSAPubKey
-	PrevSignature util.EcdsaSignature
+	PrevPubKeyRaw []byte
+	PrevSignature []byte
 
-	ID     wendy.NodeID
-	PubKey util.ECDSAPubKey
+	ID        wendy.NodeID
+	PubKeyRaw []byte
 
 	NextID wendy.NodeID
 }
 
 func makeRelayBlock(id wendy.NodeID, privKey *ecdsa.PrivateKey, nextID wendy.NodeID, prevRelayBlock *RelayBlock) (*RelayBlock, error) {
 	block := RelayBlock{
-		ID:     id,
-		PubKey: util.MakeFromPubKey(privKey.PublicKey, util.CurveType),
-		NextID: nextID,
+		ID:        id,
+		PubKeyRaw: util.MarshalPubKey(&privKey.PublicKey),
+		NextID:    nextID,
 	}
 
 	if prevRelayBlock != nil {
 		block.PrevID = prevRelayBlock.ID
-		block.PrevPubKey = prevRelayBlock.PubKey
+		block.PrevPubKeyRaw = prevRelayBlock.PubKeyRaw
 		block.PrevSignature = prevRelayBlock.Signature
 	}
 
@@ -62,10 +62,10 @@ func makeRelayBlock(id wendy.NodeID, privKey *ecdsa.PrivateKey, nextID wendy.Nod
 func makeValidationRelayBlock(block *RelayBlock) *validationRelayBlock {
 	return &validationRelayBlock{
 		PrevID:        block.PrevID,
-		PrevPubKey:    block.PrevPubKey,
+		PrevPubKeyRaw: block.PrevPubKeyRaw,
 		PrevSignature: block.PrevSignature,
 		ID:            block.ID,
-		PubKey:        block.PubKey,
+		PubKeyRaw:     block.PubKeyRaw,
 		NextID:        block.NextID,
 	}
 }

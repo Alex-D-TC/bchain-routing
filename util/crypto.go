@@ -2,7 +2,6 @@ package util
 
 import (
 	"crypto/ecdsa"
-	"crypto/sha256"
 
 	"github.com/ethereum/go-ethereum/crypto"
 )
@@ -11,12 +10,12 @@ func GenerateECDSAKey() (*ecdsa.PrivateKey, error) {
 	return crypto.GenerateKey()
 }
 
-func Sign(key *ecdsa.PrivateKey, hash [sha256.Size]byte) ([]byte, error) {
+func Sign(key *ecdsa.PrivateKey, hash []byte) ([]byte, error) {
 	return crypto.Sign(hash[:], key)
 }
 
-func Verify(pubKey ecdsa.PublicKey, hashData []byte, signature []byte) bool {
-	return crypto.VerifySignature(crypto.CompressPubkey(&pubKey), hashData, signature)
+func Verify(pubKeyRaw []byte, hashData []byte, signature []byte) bool {
+	return crypto.VerifySignature(pubKeyRaw, hashData, signature[:64])
 }
 
 func PubKeysEqual(k1 ecdsa.PublicKey, k2 ecdsa.PublicKey) bool {

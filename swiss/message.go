@@ -3,12 +3,12 @@ package swiss
 import (
 	"bytes"
 	"crypto/ecdsa"
-	"crypto/sha256"
 	"encoding/binary"
 	"errors"
 	"fmt"
 
 	"github.com/alex-d-tc/bchain-routing/util"
+	"github.com/ethereum/go-ethereum/crypto"
 	"secondbit.org/wendy"
 )
 
@@ -21,7 +21,7 @@ type Message struct {
 	RelayChain []RelayBlock
 
 	Payload            []byte
-	ByteCountHash      [sha256.Size]byte
+	ByteCountHash      []byte
 	ByteCountSignature []byte
 
 	Signature []byte
@@ -39,7 +39,7 @@ func MakeMessage(sender wendy.NodeID, senderPrivateKey *ecdsa.PrivateKey, receiv
 	byteCountBytes := bytes.NewBuffer([]byte{})
 	binary.Write(byteCountBytes, binary.BigEndian, len(payload))
 
-	byteCountHash := sha256.Sum256(byteCountBytes.Bytes())
+	byteCountHash := crypto.Keccak256(byteCountBytes.Bytes())
 	msg.ByteCountHash = byteCountHash
 
 	byteCountSignature, err := util.Sign(senderPrivateKey, byteCountHash)
@@ -49,12 +49,12 @@ func MakeMessage(sender wendy.NodeID, senderPrivateKey *ecdsa.PrivateKey, receiv
 
 	msg.ByteCountSignature = byteCountSignature
 
-	bytes, err := util.JSONEncode(msg)
+	bytes, err := util.GobEncode(msg)
 	if err != nil {
 		return nil, err
 	}
 
-	hash := sha256.Sum256(bytes)
+	hash := crypto.Keccak256(bytes)
 
 	sign, err := util.Sign(senderPrivateKey, hash)
 	if err != nil {
@@ -66,7 +66,7 @@ func MakeMessage(sender wendy.NodeID, senderPrivateKey *ecdsa.PrivateKey, receiv
 	return &msg, err
 }
 
-func (msg *Message) Relay(id wendy.NodeID, nextID wendy.NodeID, senderPrivateKey *ecdsa.PrivateKey) error {
+func (msg *Message) Relay(id wendy.NodeID, nextID wendy.NodeID, relayerPrivateKey *ecdsa.PrivateKey) error {
 
 	currentID := msg.Sender
 	var prevBlock *RelayBlock
@@ -79,7 +79,7 @@ func (msg *Message) Relay(id wendy.NodeID, nextID wendy.NodeID, senderPrivateKey
 		return errors.New("The supplied ID does not match the NextID of the latest block in the Proof of Relay chain")
 	}
 
-	block, err := makeRelayBlock(id, senderPrivateKey, nextID, prevBlock)
+	block, err := makeRelayBlock(id, relayerPrivateKey, nextID, prevBlock)
 	if err != nil {
 		return err
 	}
@@ -189,18 +189,12 @@ func validateAgainstPrevious(relayBlock *RelayBlock, previousBlock *RelayBlock, 
 }
 
 func signatureValidation(relayBlock *RelayBlock) (bool, error) {
-	blockBytes, err := relayBlock.ValidationBytes()
-	if err != nil {
-		return false, err
-	}
-	blockHash := sha256.Sum256(blockBytes)
-
-	relayKey, err := util.UnmarshalPubKey(relayBlock.PubKeyRaw)
+	blockHash, err := relayBlock.BlockHash256()
 	if err != nil {
 		return false, err
 	}
 
-	return util.Verify(*relayKey, blockHash[:], relayBlock.Signature), nil
+	return util.Verify(relayBlock.PubKeyRaw, blockHash[:], relayBlock.Signature), nil
 }
 
 func DefaultMessageProcessor(msg *Message) {

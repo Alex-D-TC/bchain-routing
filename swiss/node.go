@@ -68,7 +68,7 @@ func (node *SwissNode) Send(destination wendy.NodeID, payload []byte) error {
 		return err
 	}
 
-	encodingResult, err := util.JSONEncode(*message)
+	encodingResult, err := util.GobEncode(*message)
 	if err != nil {
 		return err
 	}
@@ -90,7 +90,7 @@ func (node *SwissNode) forwardingProcessor(rawPayload []byte, next wendy.NodeID)
 	// Message decoding from raw data
 
 	var msg Message
-	err := util.JSONDecode(rawPayload, &msg)
+	err := util.GobDecode(rawPayload, &msg)
 	if err != nil {
 		node.debug(fmt.Sprintf("%s", err))
 		return rawPayload, false
@@ -112,7 +112,7 @@ func (node *SwissNode) forwardingProcessor(rawPayload []byte, next wendy.NodeID)
 
 	// Message encoding to raw data
 
-	encoded, err := util.JSONEncode(msg)
+	encoded, err := util.GobEncode(msg)
 	if err != nil {
 		node.debug(fmt.Sprintf("%s", err))
 		return rawPayload, false
@@ -123,7 +123,7 @@ func (node *SwissNode) forwardingProcessor(rawPayload []byte, next wendy.NodeID)
 
 func (node *SwissNode) processRaw(rawMsg []byte) (*Message, error) {
 	var result Message
-	err := util.JSONDecode(rawMsg, &result)
+	err := util.GobDecode(rawMsg, &result)
 	return &result, err
 }
 

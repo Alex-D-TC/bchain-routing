@@ -2,9 +2,9 @@ package swiss
 
 import (
 	"crypto/ecdsa"
-	"crypto/sha256"
 
 	"github.com/alex-d-tc/bchain-routing/util"
+	"github.com/ethereum/go-ethereum/crypto"
 	"secondbit.org/wendy"
 )
 
@@ -21,14 +21,14 @@ type RelayBlock struct {
 }
 
 type validationRelayBlock struct {
-	PrevID        wendy.NodeID
-	PrevPubKeyRaw []byte
-	PrevSignature []byte
-
-	ID        wendy.NodeID
-	PubKeyRaw []byte
-
+	ID     wendy.NodeID
 	NextID wendy.NodeID
+	PrevID wendy.NodeID
+
+	PubKeyRaw     []byte
+	PrevPubKeyRaw []byte
+
+	PrevSignature []byte
 }
 
 func makeRelayBlock(id wendy.NodeID, privKey *ecdsa.PrivateKey, nextID wendy.NodeID, prevRelayBlock *RelayBlock) (*RelayBlock, error) {
@@ -44,12 +44,10 @@ func makeRelayBlock(id wendy.NodeID, privKey *ecdsa.PrivateKey, nextID wendy.Nod
 		block.PrevSignature = prevRelayBlock.Signature
 	}
 
-	blockBytes, err := block.ValidationBytes()
+	hash, err := block.BlockHash256()
 	if err != nil {
 		return nil, err
 	}
-
-	hash := sha256.Sum256(blockBytes)
 
 	signature, err := util.Sign(privKey, hash)
 	if err == nil {
@@ -70,6 +68,16 @@ func makeValidationRelayBlock(block *RelayBlock) *validationRelayBlock {
 	}
 }
 
+func (block *RelayBlock) BlockHash256() ([]byte, error) {
+
+	encoded, err := util.GobEncode(*makeValidationRelayBlock(block))
+	if err != nil {
+		return nil, err
+	}
+
+	return crypto.Keccak256(encoded), nil
+}
+
 func (block *RelayBlock) ValidationBytes() ([]byte, error) {
-	return util.JSONEncode(*makeValidationRelayBlock(block))
+	return util.GobEncode(*makeValidationRelayBlock(block))
 }

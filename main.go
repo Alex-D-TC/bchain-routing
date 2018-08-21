@@ -8,6 +8,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/core/types"
+	"secondbit.org/wendy"
 
 	"github.com/alex-d-tc/bchain-routing/cmd"
 	eth "github.com/alex-d-tc/bchain-routing/eth/build-go"
@@ -37,30 +38,43 @@ func main() {
 
 func testMsg() {
 
+	sourceID := wendy.NodeID{1, 2}
+	destID := wendy.NodeID{0, 1}
+
 	key, err := crypto.LoadECDSA("eth.key")
 	if err != nil {
 		panic(err)
 	}
 
-	msg, err := swiss.MakeMessage([2]uint64{1, 2}, key, [2]uint64{0, 1}, []byte{1, 3, 4})
+	msg, err := swiss.MakeMessage(sourceID, key, destID, []byte{1, 3, 4})
 	if err != nil {
 		panic(err)
 	}
 
-	encoded, err := util.JSONEncode(msg)
+	encoded, err := util.GobEncode(msg)
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println(msg)
+	//fmt.Println(msg)
 
 	var resMsg swiss.Message
-	err = util.JSONDecode(encoded, &resMsg)
+	err = util.GobDecode(encoded, &resMsg)
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println(resMsg)
+	//fmt.Println(resMsg)
+
+	err = msg.Relay(sourceID, destID, key)
+	if err != nil {
+		panic(err)
+	}
+
+	err = msg.ValidateRelayPath()
+	if err != nil {
+		panic(err)
+	}
 }
 
 func readEthAddress(keyPath string) (*ecdsa.PrivateKey, error) {
@@ -98,10 +112,10 @@ func testKeys(keyPath string) {
 		fmt.Println(err)
 	}
 
-	json, _ := util.JSONEncode(msg)
+	json, _ := util.GobEncode(msg)
 
 	var message swiss.Message
-	fmt.Println(util.JSONDecode(json, &message))
+	fmt.Println(util.GobDecode(json, &message))
 
 	fmt.Println(util.PubKeysEqual(k1.PublicKey, k2.PublicKey))
 }

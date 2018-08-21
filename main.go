@@ -9,7 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/core/types"
 
-	eth "github.com/alex-d-tc/bchain-routing/eth/contracts"
+	eth "github.com/alex-d-tc/bchain-routing/eth/build-go"
 	"github.com/alex-d-tc/bchain-routing/swiss"
 	"github.com/alex-d-tc/bchain-routing/util"
 	"github.com/ethereum/go-ethereum/common"
@@ -27,9 +27,15 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	testSendEth(key)
 
-	//testEthCall(key)
+	client, _ := makeClient("https://ropsten.infura.io")
+	//printBalance(client, crypto.PubkeyToAddress(key.PublicKey))
+
+	//testSendEth(key)
+	//testEthCall(client, key)
+	//testSimpleCall(client, key)
+	//testContractDeploy(client, key)
+	testSwissMint(client, key, 300, "0x158d29DBa40Ea09D371b23D0F20F30EedC2A4588", "0xa7ea06f6e990c26439ebd2691a47610db41580d8")
 	//cmd.Execute()
 }
 
@@ -76,9 +82,17 @@ func testKeys(keyPath string) {
 	fmt.Println(util.PubKeysEqual(k1.PublicKey, k2.PublicKey))
 }
 
+func makeClient(rawURL string) (*ethclient.Client, error) {
+	return ethclient.Dial(rawURL)
+}
+
+func printBalance(client *ethclient.Client, addr common.Address) {
+	fmt.Println(client.BalanceAt(context.Background(), addr, nil))
+}
+
 func testSendEth(key *ecdsa.PrivateKey) {
-	//client, err := ethclient.Dial("https://ropsten.infura.io/v3/4bf23add04f743fab3e7bba300ea772a")
-	client, err := ethclient.Dial("\\\\.\\pipe\\geth.ipc")
+	client, err := ethclient.Dial("https://ropsten.infura.io/")
+	//client, err := ethclient.Dial("\\\\.\\pipe\\geth.ipc")
 	if err != nil {
 		panic(err)
 	}
@@ -90,7 +104,7 @@ func testSendEth(key *ecdsa.PrivateKey) {
 		panic(err)
 	}
 
-	value := big.NewInt(5000)
+	value := big.NewInt(2000)
 	gasLimit := uint64(21000)
 
 	gasPrice, err := client.SuggestGasPrice(context.Background())
@@ -119,15 +133,77 @@ func testSendEth(key *ecdsa.PrivateKey) {
 	fmt.Println(signedTx.Hash().Hex())
 }
 
-func testEthCall(key *ecdsa.PrivateKey) {
-
-	// pipePath \\\\.\\pipe\\geth.ipc
-
-	//client, err := ethclient.Dial("https://rinkeby.infura.io/")
-	client, err := ethclient.Dial("\\\\.\\pipe\\geth.ipc")
+func testContractDeploy(client *ethclient.Client, key *ecdsa.PrivateKey) {
+	auth, err := prepareTransactionAuth(client, key, 0)
 	if err != nil {
 		panic(err)
 	}
+
+	address, tx, instance, err := eth.DeploySimpleToken(auth, client, "Swiss", "SWS", big.NewInt(1000000000))
+	if err != nil {
+		panic(err)
+	}
+
+	_ = instance
+
+	fmt.Println(address.Hex())
+	fmt.Println(tx.Hash().Hex())
+}
+
+func testSimpleCall(client *ethclient.Client, key *ecdsa.PrivateKey) {
+
+	targetContract := common.HexToAddress("0xf480a29977435b07de7bfca98524713efcf7d7c7")
+	counterInstance, err := eth.NewCounter(targetContract, client)
+	if err != nil {
+		panic(err)
+	}
+
+	auth, err := prepareTransactionAuth(client, key, 0)
+	if err != nil {
+		panic(err)
+	}
+
+	tx, err := counterInstance.Add(auth, big.NewInt(3))
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(tx.Hash().Hex())
+	receipt, err := client.TransactionReceipt(context.Background(), tx.Hash())
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(string(receipt.PostState))
+}
+
+func prepareTransactionAuth(client *ethclient.Client, key *ecdsa.PrivateKey, value int64) (*bind.TransactOpts, error) {
+
+	/*
+		nonce, err := client.PendingNonceAt(context.Background(), crypto.PubkeyToAddress(key.PublicKey))
+		if err != nil {
+			return nil, err
+		}
+
+		gasPrice, err := client.SuggestGasPrice(context.Background())
+		if err != nil {
+			return nil, err
+		}
+	*/
+
+	auth := bind.NewKeyedTransactor(key)
+
+	//auth.Nonce = big.NewInt(int64(nonce))
+	//auth.Value = big.NewInt(0)
+	//auth.GasLimit = uint64(3000000)
+	//auth.GasPrice = gasPrice
+
+	return auth, nil
+}
+
+func testSwissMint(client *ethclient.Client, key *ecdsa.PrivateKey, value uint, destination string, swissContract string) {
+
+	// pipePath \\\\.\\pipe\\geth.ipc
 
 	id, err := client.NetworkID(context.Background())
 	if err != nil {
@@ -135,20 +211,19 @@ func testEthCall(key *ecdsa.PrivateKey) {
 	}
 	fmt.Println("Network id: ", id)
 
-	swissCoinAddress := common.HexToAddress("0xd9b4a78e1aa32c4132544d1e8fdd9f4c69448b13")
-	instance, err := eth.NewSwissCoin(swissCoinAddress, client)
+	swissCoinAddress := common.HexToAddress(swissContract)
+	instance, err := eth.NewSimpleToken(swissCoinAddress, client)
 	if err != nil {
 		panic(err)
 	}
 
-	tcAddr := common.HexToAddress("0x158d29DBa40Ea09D371b23D0F20F30EedC2A4588")
+	tcAddr := common.HexToAddress(destination)
 
-	tcBalance, err := client.BalanceAt(context.Background(), tcAddr, nil)
+	sourceBalanceOf, err := instance.BalanceOf(nil, crypto.PubkeyToAddress(key.PublicKey))
 	if err != nil {
 		panic(err)
 	}
-
-	fmt.Println("Remote balance eth: ", tcBalance)
+	fmt.Println("Source balance SWS: ", sourceBalanceOf)
 
 	balanceOf, err := instance.BalanceOf(nil, tcAddr)
 	if err != nil {
@@ -159,41 +234,37 @@ func testEthCall(key *ecdsa.PrivateKey) {
 	localAddr := crypto.PubkeyToAddress(key.PublicKey)
 	fmt.Println("Source address: ", localAddr.Hex())
 
-	nonce, err := client.PendingNonceAt(context.Background(), localAddr)
+	tcBalance, err := client.BalanceAt(context.Background(), tcAddr, nil)
 	if err != nil {
 		panic(err)
 	}
-
-	gasPrice, err := client.SuggestGasPrice(context.Background())
-	if err != nil {
-		panic(err)
-	}
+	fmt.Println("Remote balance wei: ", tcBalance)
 
 	balance, err := client.BalanceAt(context.Background(), localAddr, nil)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("Source balance eth: ", balance)
+	fmt.Println("Source balance wei: ", balance)
 
-	auth := bind.NewKeyedTransactor(key)
+	/*
+		auth, err := prepareTransactionAuth(client, key, 0)
+		if err != nil {
+			panic(err)
+		}
+	*/
 
-	auth.Nonce = big.NewInt(int64(nonce))
-	auth.Value = big.NewInt(0)
-	auth.GasLimit = uint64(3000000)
-	auth.GasPrice = gasPrice
+	//fmt.Println("Running costs wei:  ", auth.GasPrice.Mul(auth.GasPrice, big.NewInt(int64(auth.GasLimit))))
 
-	fmt.Println("Running costs eth:  ", auth.GasPrice.Mul(auth.GasPrice, big.NewInt(int64(auth.GasLimit))))
+	//fmt.Println(auth.From.Hex(), localAddr.Hex())
 
-	fmt.Println(auth.From.Hex(), localAddr.Hex())
-
-	tx, err := instance.Transfer(auth, common.HexToAddress("0x158d29DBa40Ea09D371b23D0F20F30EedC2A4588"), big.NewInt(2000))
-
+	val := big.NewInt(int64(value))
+	tx, err := instance.Mint(bind.NewKeyedTransactor(key), tcAddr, val)
 	if err != nil {
 		panic(err)
 	}
 
 	fmt.Println(tx.Hash().Hex())
 
-	fmt.Println(instance.BalanceOf(nil, common.HexToAddress("0x158d29DBa40Ea09D371b23D0F20F30EedC2A4588")))
+	fmt.Println(instance.BalanceOf(nil, tcAddr))
 	fmt.Println(instance.BalanceOf(nil, localAddr))
 }

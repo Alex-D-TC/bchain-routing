@@ -41,8 +41,11 @@ contract RelayHandler {
     mapping(address => RelayRequest[]) relays;
     SimpleToken token;
 
+    address owner;
+
     constructor(SimpleToken _token) public {
         token = _token;
+        owner = msg.sender;
     }
 
     function submitRelay(
@@ -142,6 +145,11 @@ contract RelayHandler {
         }
     }
 
+    function switchToken(SimpleToken _token) public {
+        require(owner == msg.sender, "Only the owner can call this");
+        token = _token;
+    }
+
     function addressFromBytes(bytes memory key) private pure returns (address) {
 
         require(key.length >= 20, "The key must be of at least 20 bytes");
@@ -158,5 +166,4 @@ contract RelayHandler {
         
         return address(result);
     }
-
 }

@@ -1,10 +1,10 @@
 pragma solidity ^0.4.24;
 
-import "./SimpleToken.sol";
+import "./SimpleTokenImpl.sol";
 
-contract SwissCoin is SimpleToken {
+contract SwissCoin is SimpleTokenImpl {
 
-    constructor(uint _maxSupply) SimpleToken("Swiss", "SWS", _maxSupply) public
+    constructor(uint _maxSupply) SimpleTokenImpl("Swiss", "SWS", _maxSupply) public
     {
     }
 }

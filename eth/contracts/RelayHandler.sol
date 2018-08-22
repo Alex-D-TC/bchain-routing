@@ -1,6 +1,8 @@
 pragma solidity ^0.4.24;
 pragma experimental ABIEncoderV2;
 
+import "./SimpleToken.sol";
+
 contract RelayHandler {
 
     struct Relay {
@@ -28,13 +30,19 @@ contract RelayHandler {
         bytes[] porRawHash;
     }
 
-    event RelayHonored(address, uint);
-    event RelayPaymentReqeusted(address, uint);
-    
-    mapping(address => Relay[]) relays;
-    mapping(address => uint) nextToHonor;
+    struct RelayRequest {
+        bool honored;
+        Relay relay;
+    }
 
-    constructor() public {
+    event RelayHonored(address, uint, bytes);
+    event RelayPaymentRequested(address, uint);
+    
+    mapping(address => RelayRequest[]) relays;
+    SimpleToken token;
+
+    constructor(SimpleToken _token) public {
+        token = _token;
     }
 
     function submitRelay(
@@ -66,8 +74,13 @@ contract RelayHandler {
             por: por
         });
             
+        RelayRequest memory request = RelayRequest({
+            honored: false,
+            relay: relay
+        });
+
         address addr = addressFromBytes(relay.senderPublicKey);
-        return relays[addr].push(relay);
+        return relays[addr].push(request);
     }
 
     function getRelay(address _addr, uint _id) public view returns (
@@ -82,7 +95,7 @@ contract RelayHandler {
         require(_id < relays[_addr].length, "Relay with the given id does not exist");
 
         // Messy return of relay data
-        Relay storage relay = relays[_addr][_id];
+        Relay storage relay = relays[_addr][_id].relay;
 
         sentBytes = relay.sentBytes;
         sentBytesSignature = relay.sentBytesSignature;
@@ -99,6 +112,34 @@ contract RelayHandler {
         signatures[1] = relay.por.porPrevSignature;
         
         return;
+    }
+
+    function honorRelay(address _userAddr, uint _relayId, uint _totalVal) public {
+        require(_relayId < relays[_userAddr].length, "The relay must exist");
+        require(!relays[_userAddr][_relayId].honored, "The relay request must not be handled beforehand");
+    
+        // We are highly optimistic people :>
+        relays[_userAddr][_relayId].honored = true;
+
+        // Claim the funds
+        token.claimAllowance(_userAddr, _totalVal);
+        
+        // Send them to the relevant parties
+        ProofOfRelay storage por = relays[_userAddr][_relayId].relay.por;
+        
+        // Split the funds (evenly for now)
+        uint256 valChunk = _totalVal / por.porPubkey.length;
+        uint256 valMod = _totalVal % por.porPubkey.length;
+
+        for(uint i = 1; i < por.porPubkey.length; ++i) {
+            address to = addressFromBytes(por.porPubkey[i]);
+            uint256 toSend = valChunk;
+            if(i <= valMod) {
+                toSend += 1;
+            }
+
+            token.sendTo(to, toSend);
+        }
     }
 
     function addressFromBytes(bytes memory key) private pure returns (address) {

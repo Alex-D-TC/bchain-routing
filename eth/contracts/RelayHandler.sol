@@ -35,8 +35,8 @@ contract RelayHandler {
         Relay relay;
     }
 
-    event RelayHonored(address, uint, bytes);
-    event RelayPaymentRequested(address, uint);
+    event RelayHonored(address user, uint relay, uint val);
+    event RelayPaymentRequested(address user, uint relay);
     
     mapping(address => RelayRequest[]) relays;
     SimpleToken token;
@@ -143,6 +143,8 @@ contract RelayHandler {
 
             token.sendTo(to, toSend);
         }
+
+        emit RelayHonored(_userAddr, _relayId, _totalVal);
     }
 
     function switchToken(SimpleToken _token) public {

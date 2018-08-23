@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/alex-d-tc/bchain-routing/eth"
 	"github.com/alex-d-tc/bchain-routing/swiss"
 	"github.com/alex-d-tc/bchain-routing/util"
+	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/spf13/cobra"
 )
@@ -14,13 +16,23 @@ var rootLocalIP string
 var rootGlobalIP string
 var rootPort int32
 var rootKeyPath string
+var rootClientPath string
+var rootRelayContractAddress string
+var rootCoinContractAddress string
 
 var clusterStart = &cobra.Command{
 	Use:   "cluster-start",
 	Short: "Swiss cluster deploy",
 	Long:  "Swisssssss clusterrrr deployyyy",
 	Run: func(cmd *cobra.Command, args []string) {
-		runCluster(rootLocalIP, rootGlobalIP, int(rootPort), rootKeyPath)
+		runCluster(
+			rootLocalIP,
+			rootGlobalIP,
+			int(rootPort),
+			rootKeyPath,
+			rootClientPath,
+			rootRelayContractAddress,
+			rootCoinContractAddress)
 	},
 }
 
@@ -31,11 +43,14 @@ func init() {
 	flags.StringVar(&rootGlobalIP, "global-ip", "0.0.0.0", "The global ip address")
 	flags.Int32Var(&rootPort, "port", 8000, "The cluster port")
 	flags.StringVar(&rootKeyPath, "key", "", "The path to the private key file")
+	flags.StringVar(&rootClientPath, "conn", "https://ropsten.infura.io/", "The url to which the ethereum client connects to the network")
+	flags.StringVar(&rootRelayContractAddress, "relay", "", "The ethereum address of the relay handler contract")
+	flags.StringVar(&rootCoinContractAddress, "coin", "", "The ethereum address of the swiss coin contract")
 
 	rootCmd.AddCommand(clusterStart)
 }
 
-func runCluster(localIP string, globalIP string, port int, keyPath string) {
+func runCluster(localIP string, globalIP string, port int, keyPath string, clientURL string, relayAddr string, coinAddr string) {
 
 	privKey, err := util.LoadKeys(keyPath)
 	if err != nil {
@@ -43,7 +58,25 @@ func runCluster(localIP string, globalIP string, port int, keyPath string) {
 		os.Exit(1)
 	}
 
-	node := swiss.InitSwissNode(localIP, port, globalIP, privKey)
+	client, err := eth.GetThreadsafeClient(clientURL)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	relay, err := eth.GetRelayHandler(common.HexToAddress(relayAddr), client)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	coin, err := eth.GetSwissCoin(common.HexToAddress(coinAddr), client)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	node := swiss.InitSwissNode(localIP, port, globalIP, privKey, client, relay, coin)
 
 	fmt.Println("My id is: ", node.ID)
 

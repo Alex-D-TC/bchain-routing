@@ -73,6 +73,15 @@ func (client *ThreadsafeClient) Dispose() {
 	client.queue.Dispose()
 }
 
+func GetThreadsafeClient(rawUrl string) (*ThreadsafeClient, error) {
+	client, err := GetClient(rawUrl)
+	if err != nil {
+		return nil, err
+	}
+
+	return MakeThreadsafeClient(client), nil
+}
+
 func GetClient(rawUrl string) (*ethclient.Client, error) {
 	return ethclient.Dial(rawUrl)
 }

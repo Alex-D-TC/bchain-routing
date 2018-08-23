@@ -6,8 +6,10 @@ import (
 	"os"
 	"strings"
 
+	"github.com/alex-d-tc/bchain-routing/eth"
 	"github.com/alex-d-tc/bchain-routing/swiss"
 	"github.com/alex-d-tc/bchain-routing/util"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/spf13/cobra"
 )
 
@@ -16,7 +18,16 @@ var clientCmd = &cobra.Command{
 	Short: "Start a client node",
 	Long:  "Starrrrt a cliennnnt nooooode",
 	Run: func(cmd *cobra.Command, args []string) {
-		runClient(clientLocalIP, clientGlobalIP, int(clientPort), clientBootstrapIP, int(clientBootstrapPort), clientKeyPath)
+		runClient(
+			clientLocalIP,
+			clientGlobalIP,
+			int(clientPort),
+			clientBootstrapIP,
+			int(clientBootstrapPort),
+			clientKeyPath,
+			clientClientPath,
+			clientRelayContractAddress,
+			clientCoinContractAddress)
 	},
 }
 
@@ -26,6 +37,9 @@ var clientGlobalIP string
 var clientBootstrapIP string
 var clientBootstrapPort int32
 var clientKeyPath string
+var clientClientPath string
+var clientRelayContractAddress string
+var clientCoinContractAddress string
 
 func init() {
 	flags := clientCmd.Flags()
@@ -36,11 +50,14 @@ func init() {
 	flags.StringVar(&clientBootstrapIP, "bootstrap-ip", "127.0.0.1", "The bootstrap node ip")
 	flags.Int32Var(&clientBootstrapPort, "bootstrap-port", 8000, "The client bootstrap port")
 	flags.StringVar(&clientKeyPath, "key", "", "The path to the private key file")
+	flags.StringVar(&clientClientPath, "conn", "https://ropsten.infura.io/", "The url to which the ethereum client connects to the network")
+	flags.StringVar(&clientRelayContractAddress, "relay", "", "The ethereum address of the relay handler contract")
+	flags.StringVar(&clientCoinContractAddress, "coin", "", "The ethereum address of the swiss coin contract")
 
 	rootCmd.AddCommand(clientCmd)
 }
 
-func runClient(localIP string, publicIP string, port int, bootstrapIP string, bootstrapPort int, keyPath string) {
+func runClient(localIP string, publicIP string, port int, bootstrapIP string, bootstrapPort int, keyPath string, clientURL string, relayAddr string, coinAddr string) {
 
 	fmt.Println("Building swiss node...")
 
@@ -50,7 +67,25 @@ func runClient(localIP string, publicIP string, port int, bootstrapIP string, bo
 		os.Exit(1)
 	}
 
-	node := swiss.InitSwissNode(localIP, port, publicIP, privKey)
+	client, err := eth.GetThreadsafeClient(clientURL)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	relay, err := eth.GetRelayHandler(common.HexToAddress(relayAddr), client)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	coin, err := eth.GetSwissCoin(common.HexToAddress(coinAddr), client)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	node := swiss.InitSwissNode(localIP, port, publicIP, privKey, client, relay, coin)
 
 	fmt.Println("Starting routines...")
 

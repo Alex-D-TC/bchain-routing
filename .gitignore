@@ -1,4 +1,5 @@
 
+# For resource files  #
 RES/*
 
 # Created by https://www.gitignore.io/api/go,vim,visualstudiocode

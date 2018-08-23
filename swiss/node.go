@@ -19,7 +19,7 @@ type SwissNode struct {
 	ID         wendy.NodeID
 	PrivateKey *ecdsa.PrivateKey
 
-	started bool
+	Started bool
 
 	driver *routingdriver.RoutingDriver
 	logger *log.Logger
@@ -36,7 +36,7 @@ func InitSwissNode(localIP string, port int, publicIP string, privKey *ecdsa.Pri
 
 	node := &SwissNode{
 		ID:         id,
-		started:    false,
+		Started:    false,
 		logger:     log.New(os.Stdout, "Swiss node ", log.Ldate|log.Ltime),
 		PrivateKey: privKey,
 		client:     client,
@@ -50,8 +50,8 @@ func InitSwissNode(localIP string, port int, publicIP string, privKey *ecdsa.Pri
 }
 
 func (node *SwissNode) Start(processor func(*Message)) {
-	if !node.started {
-		node.started = true
+	if !node.Started {
+		node.Started = true
 		node.driver.Start(func(rawBytes []byte) {
 			node.processMessage(rawBytes, processor)
 		})
@@ -67,8 +67,8 @@ func (node *SwissNode) JoinAndStart(processor func(*Message), bootstrapIP string
 }
 
 func (node *SwissNode) Terminate() {
-	if node.started {
-		node.started = false
+	if node.Started {
+		node.Started = false
 		node.driver.Stop()
 	}
 }

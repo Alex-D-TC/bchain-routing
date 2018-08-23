@@ -11,9 +11,9 @@ type Contracts struct {
 	Relay string
 }
 
-func ReadContractsConfig(rawUrl string) (Contracts, error) {
+func ReadContractsConfig(jsonPath string) (Contracts, error) {
 
-	file, err := os.Open(rawUrl)
+	file, err := os.Open(jsonPath)
 	if err != nil {
 		return Contracts{}, err
 	}

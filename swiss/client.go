@@ -37,14 +37,31 @@ func MakeClient(node *SwissNode) *Client {
 	return client
 }
 
-func (client *Client) Start() {
+func (client *Client) Start(processor func(*Message)) {
 	if !client.started {
 		client.started = true
-		client.node.Start(DefaultMessageProcessor)
+
+		// Workaround for the JoinAndStart case
+		if !client.node.Started {
+			client.node.Start(processor)
+		}
 
 		go client.watchForAllowedConfirmation(client.ctx)
 		go client.watchForPaymentRequests(client.ctx)
 	}
+}
+
+func (client *Client) JoinAndStart(processor func(*Message), bootstrapIP string, bootstrapPort int) error {
+	if !client.started {
+		err := client.node.JoinAndStart(processor, bootstrapIP, bootstrapPort)
+		if err != nil {
+			return err
+		}
+
+		client.Start(processor)
+	}
+
+	return nil
 }
 
 func (client *Client) Terminate() {

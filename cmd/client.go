@@ -86,6 +86,7 @@ func runClient(localIP string, publicIP string, port int, bootstrapIP string, bo
 	}
 
 	node := swiss.InitSwissNode(localIP, port, publicIP, privKey, client, relay, coin)
+	swissClient := swiss.MakeClient(node)
 
 	fmt.Println("Starting routines...")
 
@@ -94,7 +95,7 @@ func runClient(localIP string, publicIP string, port int, bootstrapIP string, bo
 
 	// Network listener goroutine
 	go func() {
-		err := node.JoinAndStart(swiss.DefaultMessageProcessor, bootstrapIP, bootstrapPort)
+		err := swissClient.JoinAndStart(swiss.DefaultMessageProcessor, bootstrapIP, bootstrapPort)
 		if err != nil {
 			fmt.Println(err)
 			failChan <- 1
@@ -134,6 +135,7 @@ func runClient(localIP string, publicIP string, port int, bootstrapIP string, bo
 
 		if fail {
 			fmt.Println("Stopping...")
+			swissClient.Terminate()
 			break
 		}
 	}

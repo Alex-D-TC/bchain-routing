@@ -12,22 +12,8 @@ contract RelayHandler {
         bytes sentBytesSignature;
         bytes senderPublicKey;
 
-        ProofOfRelay por;
-    }
-
-    struct ProofOfRelay {
-
-        uint128[] porID;
-        uint128[] porPrevID;
-        uint128[] porNextID;
-        
-        bytes[] porPubkey;
-        bytes[] porPrevPubkey;
-        
-        bytes[] porSignature;
-        bytes[] porPrevSignature;
-        
-        bytes[] porRawHash;
+        bytes ipfsRelayHash;
+        address[] relayers;
     }
 
     struct RelayRequest {
@@ -55,28 +41,16 @@ contract RelayHandler {
         bytes memory _sentBytesHash, 
         bytes memory _sentBytesSignature, 
         bytes memory _senderPublicKey, 
-        uint128[][3] memory _ids,
-        bytes[][2] memory _keys,
-        bytes[][2] memory _signatures,
-        bytes[] memory _porRawHash) public returns(uint) {
-        
-        ProofOfRelay memory por = ProofOfRelay({
-            porID: _ids[0],
-            porNextID: _ids[1],
-            porPrevID: _ids[2],
-            porPubkey: _keys[0],
-            porPrevPubkey: _keys[1],
-            porSignature: _signatures[0],
-            porPrevSignature: _signatures[1],
-            porRawHash: _porRawHash
-        });
+        bytes memory _ipfsRelayHash,
+        address[] memory _relayers) public returns(uint) {
         
         Relay memory relay = Relay({
             sentBytes: _sentBytes,
             sentBytesHash: _sentBytesHash,
             sentBytesSignature: _sentBytesSignature,
             senderPublicKey: _senderPublicKey,
-            por: por
+            ipfsRelayHash: _ipfsRelayHash,
+            relayers: _relayers
         });
             
         RelayRequest memory request = RelayRequest({
@@ -92,10 +66,8 @@ contract RelayHandler {
         uint128 sentBytes,
         bytes memory sentBytesSignature,
         bytes memory senderPublicKey,
-        
-        uint128[][3] memory ids,
-        bytes[][2] memory keys,
-        bytes[][2] memory signatures) {
+        bytes memory sentBytesHash,
+        bytes memory ipfsRelayHash) {
 
         require(_id < relays[_addr].length, "Relay with the given id does not exist");
 
@@ -105,16 +77,8 @@ contract RelayHandler {
         sentBytes = relay.sentBytes;
         sentBytesSignature = relay.sentBytesSignature;
         senderPublicKey = relay.senderPublicKey;
-                
-        ids[0] = relay.por.porID;
-        ids[1] = relay.por.porNextID;
-        ids[2] = relay.por.porPrevID;
 
-        keys[0] = relay.por.porPubkey;
-        keys[1] = relay.por.porPrevPubkey;
-                
-        signatures[0] = relay.por.porSignature;
-        signatures[1] = relay.por.porPrevSignature;
+        ipfsRelayHash = relay.ipfsRelayHash;                
     }
 
     function honorRelay(address _userAddr, uint _totalVal) public {
@@ -137,14 +101,14 @@ contract RelayHandler {
         token.claimAllowance(_userAddr, relays[_userAddr][nextRelay].relay.sentBytes);
         
         // Send them to the relevant parties
-        ProofOfRelay storage por = relays[_userAddr][nextRelay].relay.por;
-        
-        // Split the funds (evenly for now)
-        uint256 valChunk = _totalVal / por.porPubkey.length;
-        uint256 valMod = _totalVal % por.porPubkey.length;
+        address[] storage relayers = relays[_userAddr][nextRelay].relay.relayers;
 
-        for(uint i = 1; i < por.porPubkey.length; ++i) {
-            address to = addressFromBytes(por.porPubkey[i]);
+        // Split the funds (evenly for now)
+        uint256 valChunk = _totalVal / relayers.length;
+        uint256 valMod = _totalVal % relayers.length;
+
+        for(uint i = 1; i < relayers.length; ++i) {
+            address to = relayers[i];
             uint256 toSend = valChunk;
             if(i <= valMod) {
                 toSend += 1;

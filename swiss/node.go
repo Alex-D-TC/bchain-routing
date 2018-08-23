@@ -125,35 +125,39 @@ func (node *SwissNode) forwardingProcessor(rawPayload []byte, next wendy.NodeID)
 	// Last node on the route. Send relay payment request to the blockchain
 	if next == msg.Receiver {
 		node.client.SubmitTransaction(func(client *ethclient.Client) error {
-			auth, err := eth.PrepareTransactionAuth(client, node.PrivateKey)
-			if err != nil {
-				node.debug(err)
+
+			/*
+				auth, err := eth.PrepareTransactionAuth(client, node.PrivateKey)
+				if err != nil {
+					node.debug(err)
+					return err
+				}
+
+				solRelay, err := MakeSolidityRelay(&msg)
+				if err != nil {
+					node.debug(err)
+					return err
+				}
+
+				tran, err := node.relay.Relay.SubmitRelay(auth,
+					solRelay.SentBytes,
+					solRelay.SentBytesHash,
+					solRelay.SentBytesSignature,
+					solRelay.SenderPublicKey,
+					solRelay.IDS,
+					solRelay.Keys,
+					solRelay.Signatures,
+					solRelay.PorRawHash)
+
+				if err != nil {
+					node.debug(err)
+				} else {
+					node.debug(tran.Hash().Hex())
+				}
+
 				return err
-			}
-
-			solRelay, err := MakeSolidityRelay(&msg)
-			if err != nil {
-				node.debug(err)
-				return err
-			}
-
-			tran, err := node.relay.Relay.SubmitRelay(auth,
-				solRelay.SentBytes,
-				solRelay.SentBytesHash,
-				solRelay.SentBytesSignature,
-				solRelay.SenderPublicKey,
-				solRelay.IDS,
-				solRelay.Keys,
-				solRelay.Signatures,
-				solRelay.PorRawHash)
-
-			if err != nil {
-				node.debug(err)
-			} else {
-				node.debug(tran.Hash().Hex())
-			}
-
-			return err
+			*/
+			return nil
 		})
 	}
 

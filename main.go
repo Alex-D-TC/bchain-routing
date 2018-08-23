@@ -10,35 +10,6 @@ import (
 )
 
 func main() {
-	//testKeys("./general.key")
-
-	//generateEthAddress("eth.key")
-	// Generated 0x4Ee601163EEc9863c6f966be984D2AF5E23185D2
-	//client, _ := makeClient("https://ropsten.infura.io")
-	//printBalance(client, crypto.PubkeyToAddress(key.PublicKey))
-
-	//testSendEth(key)
-	//testEthCall(client, key)
-	//testSimpleCall(client, key)
-	//testContractDeploy(client, key)
-	//testSwissMint(client, key, 300, "0x158d29DBa40Ea09D371b23D0F20F30EedC2A4588", "0xa7ea06f6e990c26439ebd2691a47610db41580d8")
-	//testMsg()
-	/*
-		key, err := util.LoadKeys("./eth.key")
-		if err != nil {
-			panic(err)
-		}
-
-		fmt.Println("Using address: ", crypto.PubkeyToAddress(key.PublicKey).Hex())
-
-		client, err := ethclient.Dial("https://ropsten.infura.io")
-		if err != nil {
-			panic(err)
-		}
-
-		fmt.Println("Starting test...")
-		testEvents("0x9E313A60637003B0829A7A9CA6133b2cF95E9C5c", client, key)
-	*/
 	cmd.Execute()
 }
 

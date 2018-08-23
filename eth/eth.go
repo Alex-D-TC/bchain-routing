@@ -77,16 +77,39 @@ func GetClient(rawUrl string) (*ethclient.Client, error) {
 	return ethclient.Dial(rawUrl)
 }
 
-func PrepareTransactionAuth(client *ethclient.Client, key *ecdsa.PrivateKey) (*bind.TransactOpts, error) {
-	nonce, err := client.PendingNonceAt(context.Background(), crypto.PubkeyToAddress(key.PublicKey))
+func GetSwissCoin(coinAddr common.Address, client *ThreadsafeClient) (CoinContract, error) {
+
+	client.RLock()
+	coin, err := ethBind.NewSwissCoin(coinAddr, client.client)
+	client.RUnlock()
+
+	return CoinContract{Coin: coin, CoinAddr: coinAddr}, err
+}
+
+func GetRelayHandler(relayAddr common.Address, client *ThreadsafeClient) (RelayContract, error) {
+
+	client.RLock()
+	relay, err := ethBind.NewRelayHandler(relayAddr, client.client)
+	client.RUnlock()
+
+	return RelayContract{Relay: relay, RelayAddr: relayAddr}, err
+}
+
+func PrepareTransactionAuth(client *ThreadsafeClient, key *ecdsa.PrivateKey) (*bind.TransactOpts, error) {
+
+	client.RLock()
+
+	nonce, err := client.client.PendingNonceAt(context.Background(), crypto.PubkeyToAddress(key.PublicKey))
 	if err != nil {
 		return nil, err
 	}
 
-	gasPrice, err := client.SuggestGasPrice(context.Background())
+	gasPrice, err := client.client.SuggestGasPrice(context.Background())
 	if err != nil {
 		return nil, err
 	}
+
+	client.RUnlock()
 
 	auth := bind.NewKeyedTransactor(key)
 	auth.Nonce = big.NewInt(int64(nonce))

@@ -1,6 +1,11 @@
 package swiss
 
-import "math/big"
+import (
+	"fmt"
+	"math/big"
+
+	"github.com/alex-d-tc/bchain-routing/util"
+)
 
 type SolidityRelay struct {
 
@@ -65,4 +70,12 @@ func MakeSolidityRelay(msg *Message) (SolidityRelay, error) {
 	relay.PorRawHash = porRawHash
 
 	return relay, nil
+}
+
+func (block SolidityRelay) DebugPrint() {
+	json, err := util.JSONEncode(block)
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println(string(json))
 }

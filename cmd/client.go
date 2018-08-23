@@ -67,6 +67,8 @@ func runClient(localIP string, publicIP string, port int, bootstrapIP string, bo
 		os.Exit(1)
 	}
 
+	fmt.Println("Connecting to ", clientURL)
+
 	client, err := eth.GetThreadsafeClient(clientURL)
 	if err != nil {
 		fmt.Println(err)
@@ -102,7 +104,7 @@ func runClient(localIP string, publicIP string, port int, bootstrapIP string, bo
 		}
 	}()
 
-	// Stdin listener gorouting
+	// Stdin listener goroutine
 	go func() {
 
 		reader := bufio.NewReader(os.Stdin)

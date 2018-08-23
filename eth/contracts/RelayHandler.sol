@@ -50,7 +50,7 @@ contract RelayHandler {
 
     function submitRelay(
         uint128 _sentBytes,
-        bytes _sentBytesHash, 
+        bytes memory _sentBytesHash, 
         bytes memory _sentBytesSignature, 
         bytes memory _senderPublicKey, 
         uint128[][3] memory _ids,
@@ -88,12 +88,12 @@ contract RelayHandler {
 
     function getRelay(address _addr, uint _id) public view returns (
         uint128 sentBytes,
-        bytes sentBytesSignature,
-        bytes senderPublicKey,
+        bytes memory sentBytesSignature,
+        bytes memory senderPublicKey,
         
-        uint128[][3] ids,
-        bytes[][2] keys,
-        bytes[][2] signatures) {
+        uint128[][3] memory ids,
+        bytes[][2] memory keys,
+        bytes[][2] memory signatures) {
 
         require(_id < relays[_addr].length, "Relay with the given id does not exist");
 
@@ -113,8 +113,6 @@ contract RelayHandler {
                 
         signatures[0] = relay.por.porSignature;
         signatures[1] = relay.por.porPrevSignature;
-        
-        return;
     }
 
     function honorRelay(address _userAddr, uint _relayId, uint _totalVal) public {
@@ -152,15 +150,15 @@ contract RelayHandler {
         token = _token;
     }
 
-    function addressFromBytes(bytes memory key) private pure returns (address) {
+    function addressFromBytes(bytes memory _key) private pure returns (address) {
 
-        require(key.length >= 20, "The key must be of at least 20 bytes");
+        require(_key.length >= 20, "The key must be of at least 20 bytes");
 
         uint160 result = 0;
 
-        uint i = key.length - 1;
+        uint i = _key.length - 1;
         for(uint iterations = 0; iterations < 20; ++iterations) {
-            bytes20 b = key[i];
+            bytes20 b = _key[i];
             result = result + uint160(b);
             result = result << 8;
             --i;

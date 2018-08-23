@@ -18,7 +18,7 @@ contract SimpleTokenImpl is SimpleToken {
     event Allowed(address indexed from, address indexed to, uint value);
     event RevokedAllowance(address indexed from, address indexed to, uint value);
 
-    constructor(string _name, string _symbol, uint _maxSupply) public {
+    constructor(string memory _name, string memory _symbol, uint _maxSupply) public {
         name = _name;
         symbol = _symbol;
         maxSupply = _maxSupply;

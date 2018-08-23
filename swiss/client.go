@@ -16,22 +16,50 @@ import (
 type Client struct {
 	node   *SwissNode
 	logger *log.Logger
+
+	ctx        context.Context
+	cancelFunc context.CancelFunc
+
+	started bool
 }
 
 func MakeClient(node *SwissNode) *Client {
+	ctx, cancelFunc := context.WithCancel(context.Background())
+
 	client := &Client{
-		node:   node,
-		logger: log.New(os.Stdout, "Swiss client: ", log.Ldate|log.Ltime),
+		node:       node,
+		logger:     log.New(os.Stdout, "Swiss client: ", log.Ldate|log.Ltime),
+		ctx:        ctx,
+		cancelFunc: cancelFunc,
+		started:    false,
 	}
 
 	return client
+}
+
+func (client *Client) Start() {
+	if !client.started {
+		client.started = true
+
+		go client.watchForAllowedConfirmation(client.ctx)
+		go client.watchForPaymentRequests(client.ctx)
+	}
+}
+
+func (client *Client) Terminate() {
+	if client.started {
+		client.started = false
+
+		client.node.Terminate()
+		client.cancelFunc()
+	}
 }
 
 func (client *Client) watchForPaymentRequests(ctx context.Context) {
 
 	userAddr := crypto.PubkeyToAddress(client.node.PrivateKey.PublicKey)
 
-	go eth.EventWatcher(ctx, client.node.client, func(opts *bind.FilterOpts) {
+	eth.EventWatcher(ctx, client.node.client, func(opts *bind.FilterOpts) {
 
 		safeEthclient := client.node.client
 
@@ -71,11 +99,11 @@ func (client *Client) watchForPaymentRequests(ctx context.Context) {
 	})
 }
 
-func (client *Client) WatchForAllowedConfirmation(ctx context.Context) {
+func (client *Client) watchForAllowedConfirmation(ctx context.Context) {
 
 	userAddr := crypto.PubkeyToAddress(client.node.PrivateKey.PublicKey)
 
-	go eth.EventWatcher(ctx, client.node.client, func(opts *bind.FilterOpts) {
+	eth.EventWatcher(ctx, client.node.client, func(opts *bind.FilterOpts) {
 
 		safeEthclient := client.node.client
 

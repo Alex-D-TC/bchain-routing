@@ -120,7 +120,15 @@ contract RelayHandler {
     function honorRelay(address _userAddr, uint _totalVal) public {
     
         uint nextRelay = nextToHonor[_userAddr];
-        nextToHonor[_userAddr]++;
+
+        // Get the next possible relay candidate
+        for (; nextRelay < relays[_userAddr].length; nextRelay++) {
+            if(relays[_userAddr][i].relay.sentBytes == _totalVal) {
+                break;
+            }
+        }
+
+        require(relays[_userAddr][nextRelay].relay.sentBytes == _totalVal);
 
         // We are highly optimistic people :>
         relays[_userAddr][nextRelay].honored = true;
@@ -144,6 +152,11 @@ contract RelayHandler {
 
             token.sendTo(to, toSend);
         }
+
+        uint next = nextRelay + 1;
+        for(; next < relays[_userAddr].length && relays[_userAddr][next].honored; next++){}
+
+        nextToHonor[_userAddr] = next;
 
         emit RelayHonored(_userAddr, nextRelay, _totalVal);
     }

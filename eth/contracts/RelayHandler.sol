@@ -35,10 +35,12 @@ contract RelayHandler {
         Relay relay;
     }
 
-    event RelayHonored(address user, uint relay, uint val);
-    event RelayPaymentRequested(address user, uint relay);
+    event RelayHonored(address indexed user, uint relay, uint val);
+    event RelayPaymentRequested(address indexed user, uint relay);
     
     mapping(address => RelayRequest[]) relays;
+    mapping(address => uint) nextToHonor;
+
     SimpleToken token;
 
     address owner;
@@ -115,18 +117,19 @@ contract RelayHandler {
         signatures[1] = relay.por.porPrevSignature;
     }
 
-    function honorRelay(address _userAddr, uint _relayId, uint _totalVal) public {
-        require(_relayId < relays[_userAddr].length, "The relay must exist");
-        require(!relays[_userAddr][_relayId].honored, "The relay request must not be handled beforehand");
+    function honorRelay(address _userAddr, uint _totalVal) public {
     
+        uint nextRelay = nextToHonor[_userAddr];
+        nextToHonor[_userAddr]++;
+
         // We are highly optimistic people :>
-        relays[_userAddr][_relayId].honored = true;
+        relays[_userAddr][nextRelay].honored = true;
 
         // Claim the funds
-        token.claimAllowance(_userAddr, _totalVal);
+        token.claimAllowance(_userAddr, relays[_userAddr][nextRelay].relay.sentBytes);
         
         // Send them to the relevant parties
-        ProofOfRelay storage por = relays[_userAddr][_relayId].relay.por;
+        ProofOfRelay storage por = relays[_userAddr][nextRelay].relay.por;
         
         // Split the funds (evenly for now)
         uint256 valChunk = _totalVal / por.porPubkey.length;
@@ -142,7 +145,7 @@ contract RelayHandler {
             token.sendTo(to, toSend);
         }
 
-        emit RelayHonored(_userAddr, _relayId, _totalVal);
+        emit RelayHonored(_userAddr, nextRelay, _totalVal);
     }
 
     function switchToken(SimpleToken _token) public {

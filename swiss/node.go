@@ -6,6 +6,8 @@ import (
 	"log"
 	"os"
 
+	"github.com/ethereum/go-ethereum/common"
+
 	"github.com/ethereum/go-ethereum/ethclient"
 
 	"github.com/alex-d-tc/bchain-routing/eth"
@@ -25,11 +27,15 @@ type SwissNode struct {
 	logger *log.Logger
 
 	client *eth.ThreadsafeClient
-	relay  *ethBind.RelayHandler
-	coin   *ethBind.SwissCoin
+
+	relay     *ethBind.RelayHandler
+	relayAddr common.Address
+
+	coin     *ethBind.SwissCoin
+	coinAddr common.Address
 }
 
-func InitSwissNode(localIP string, port int, publicIP string, privKey *ecdsa.PrivateKey, client *eth.ThreadsafeClient, relayInstance *ethBind.RelayHandler, coinInstance *ethBind.SwissCoin) *SwissNode {
+func InitSwissNode(localIP string, port int, publicIP string, privKey *ecdsa.PrivateKey, client *eth.ThreadsafeClient, relayInstance *ethBind.RelayHandler, relayAddr common.Address, coinInstance *ethBind.SwissCoin, coinAddr common.Address) *SwissNode {
 
 	id := util.NodeIDFromStringSHA(fmt.Sprintf("%s:%d", localIP, port))
 
@@ -40,7 +46,9 @@ func InitSwissNode(localIP string, port int, publicIP string, privKey *ecdsa.Pri
 		PrivateKey: privKey,
 		client:     client,
 		relay:      relayInstance,
+		relayAddr:  relayAddr,
 		coin:       coinInstance,
+		coinAddr:   coinAddr,
 	}
 
 	node.driver = routingdriver.MakeRoutingDriver(id, localIP, publicIP, port, node.forwardingProcessor)

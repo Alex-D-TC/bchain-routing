@@ -5,6 +5,7 @@ import (
 	"crypto/ecdsa"
 	"fmt"
 	"math/big"
+	"sync"
 	"time"
 
 	"github.com/alex-d-tc/bchain-routing/concurrent"
@@ -15,6 +16,8 @@ import (
 )
 
 type ThreadsafeClient struct {
+	sync.RWMutex
+
 	client *ethclient.Client
 	queue  *concurrent.TransactionQueue
 }
@@ -30,7 +33,12 @@ func MakeThreadsafeClient(client *ethclient.Client) *ThreadsafeClient {
 
 func (client *ThreadsafeClient) SubmitTransaction(tran func(*ethclient.Client) error) error {
 	return client.queue.Submit(func() error {
-		return tran(client.client)
+		client.Lock()
+
+		err := tran(client.client)
+
+		client.Unlock()
+		return err
 	})
 }
 
@@ -61,7 +69,7 @@ func PrepareTransactionAuth(client *ethclient.Client, key *ecdsa.PrivateKey) (*b
 	return auth, nil
 }
 
-func EventWatcher(ctx context.Context, client *ethclient.Client, filterProcessor func(*bind.FilterOpts)) {
+func EventWatcher(ctx context.Context, client *ThreadsafeClient, filterProcessor func(*bind.FilterOpts)) {
 
 	done := false
 	var lastEnd *big.Int
@@ -70,13 +78,16 @@ func EventWatcher(ctx context.Context, client *ethclient.Client, filterProcessor
 
 		time.Sleep(5 * time.Second)
 
-		header, err := client.BlockByNumber(ctx, nil)
+		client.RLock()
+
+		header, err := client.client.BlockByNumber(ctx, nil)
 		if err != nil {
 			panic(err)
 		}
 
-		start := header.Number().Sub(header.Number(), big.NewInt(1))
-		end := uint64(header.Number().Int64())
+		client.RUnlock()
+
+		block := uint64(header.Number().Int64())
 
 		if lastEnd != nil && lastEnd.Cmp(header.Number()) == 0 {
 			fmt.Println("Block already processed. Sleeping")
@@ -85,12 +96,12 @@ func EventWatcher(ctx context.Context, client *ethclient.Client, filterProcessor
 
 		lastEnd = header.Number()
 
-		fmt.Println("Checking events in block: ", end)
+		fmt.Println("Checking events in block: ", block)
 
 		opts := &bind.FilterOpts{
 			Context: ctx,
-			Start:   uint64(start.Int64()),
-			End:     &end,
+			Start:   block,
+			End:     &block,
 		}
 
 		filterProcessor(opts)

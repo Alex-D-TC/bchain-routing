@@ -56,7 +56,7 @@ func MakeSolidityRelay(msg *Message) (SolidityRelay, error) {
 			return SolidityRelay{}, err
 		}
 
-		porRawHash = append(porRawHash)
+		porRawHash = append(porRawHash, rawHash)
 	}
 
 	relay.IDS = [3][]*big.Int{IDS, prevIDS, nextIDS}

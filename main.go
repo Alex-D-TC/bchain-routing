@@ -1,85 +1,22 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
-	"io"
-	"io/ioutil"
-	"mime/multipart"
-	"net/http"
-	"os"
-	"path/filepath"
 
 	"secondbit.org/wendy"
 
+	"github.com/alex-d-tc/bchain-routing/cmd"
+	"github.com/alex-d-tc/bchain-routing/eth"
 	"github.com/alex-d-tc/bchain-routing/swiss"
 	"github.com/alex-d-tc/bchain-routing/util"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/ethclient"
 )
 
 func main() {
-	testSendRelayRequest()
-	//cmd.Execute()
-}
-
-func ipfsSendRelayRequest(msg *swiss.Message) {
-	json, err := util.JSONEncode(msg)
-	if err != nil {
-		panic(err)
-	}
-
-	path, err := WriteToTemp(json)
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println(AddRelayFile(path))
-}
-
-func WriteToTemp(raw []byte) (string, error) {
-	file, err := ioutil.TempFile("", "swissRelay")
-	if err != nil {
-		return "", err
-	}
-	defer file.Close()
-	file.Write(raw)
-	return file.Name(), nil
-}
-
-func AddRelayFile(path string) (string, error) {
-	file, err := os.Open(path)
-	if err != nil {
-		return "", err
-	}
-	defer file.Close()
-
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
-	part, err := writer.CreateFormFile("file", filepath.Base(file.Name()))
-	if err != nil {
-		return "", err
-	}
-
-	io.Copy(part, file)
-	writer.Close()
-
-	fmt.Println(string(body.Bytes()))
-
-	resp, err := http.Post("http://localhost:5001/api/v0/add", writer.FormDataContentType(), body)
-	if err != nil {
-		fmt.Println(err)
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	result, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Println(err)
-		return "", err
-	}
-	fmt.Println(string(result))
-
-	return string(result), nil
+	//testSendRelayRequest()
+	cmd.Execute()
 }
 
 func testSendRelayRequest() {
@@ -87,24 +24,20 @@ func testSendRelayRequest() {
 	srcID := wendy.NodeID{0, 1}
 	destID := wendy.NodeID{3, 4}
 
-	/*
-		contracts, err := util.ReadContractsConfig("./RES/contracts.json")
-		if err != nil {
-			panic(err)
-		}
+	contracts, err := util.ReadContractsConfig("./RES/contracts.json")
+	if err != nil {
+		panic(err)
+	}
 
-		client, err := eth.GetClient("https://ropsten.infura.io")
-		if err != nil {
-			panic(err)
-		}
-	*/
+	client, err := eth.GetThreadsafeClient("https://ropsten.infura.io")
+	if err != nil {
+		panic(err)
+	}
 
-	/*
-		relay, err := ethBind.NewRelayHandler(common.HexToAddress(contracts.Relay), client)
-		if err != nil {
-			panic(err)
-		}
-	*/
+	relay, err := eth.GetRelayHandler(common.HexToAddress(contracts.Relay), client)
+	if err != nil {
+		panic(err)
+	}
 
 	k1, err := util.LoadKeys("./RES/eth.key")
 	if err != nil {
@@ -125,38 +58,49 @@ func testSendRelayRequest() {
 
 	fmt.Println("Submitting relay request")
 
-	ipfsSendRelayRequest(msg)
-	/*
+	ipfsID, err := swiss.IPFSStoreRelayFile(msg)
+	if err != nil {
+		panic(err)
+	}
+
+	done := make(chan uint8)
+
+	client.SubmitTransaction(func(client *ethclient.Client) error {
 		auth, err := eth.PrepareTransactionAuth(client, k1)
 		if err != nil {
-			fmt.Println(err)
+			return err
 		}
 
-		fmt.Println("Preparing data...")
-
-		solRelay, err := swiss.MakeSolidityRelay(msg)
+		solidityRelay, err := swiss.MakeSolidityRelay(msg, []byte(ipfsID))
 		if err != nil {
-			fmt.Println(err)
+			return err
 		}
 
-		solRelay.DebugPrint()
+		fmt.Println("Submitted transaction")
 
-		tran, err := relay.SubmitRelay(auth,
-			solRelay.SentBytes,
-			solRelay.SentBytesHash,
-			solRelay.SentBytesSignature,
-			solRelay.SenderPublicKey,
-			solRelay.IDS,
-			solRelay.Keys,
-			solRelay.Signatures,
-			solRelay.PorRawHash)
+		tx, err := relay.Relay.SubmitRelay(
+			auth,
+			solidityRelay.Receiver,
+			solidityRelay.SentBytes,
+			solidityRelay.SentBytesHash,
+			solidityRelay.SentBytesSignature,
+			solidityRelay.SenderPubKey,
+			solidityRelay.IpfsRelayHash,
+			solidityRelay.Relayers)
 
-		if err != nil {
-			fmt.Println(err)
+		if err == nil {
+			fmt.Println(tx.Hash().Hex())
 		} else {
-			fmt.Println(tran.Hash().Hex())
+			fmt.Println(err)
 		}
-	*/
+
+		done <- 1
+
+		return err
+	})
+
+	// Wait for the transaction to be done
+	<-done
 }
 
 func testMsg() {

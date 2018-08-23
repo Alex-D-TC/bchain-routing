@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"log"
+	"math/big"
 	"os"
 
 	"github.com/alex-d-tc/bchain-routing/eth"
@@ -41,24 +42,24 @@ func (client *Client) Start(processor func(*Message)) {
 	if !client.started {
 		client.started = true
 
-		// Workaround for the JoinAndStart case
-		if !client.node.Started {
-			client.node.Start(processor)
-		}
-
 		go client.watchForAllowedConfirmation(client.ctx)
 		go client.watchForPaymentRequests(client.ctx)
+
+		client.node.Start(processor)
 	}
 }
 
 func (client *Client) JoinAndStart(processor func(*Message), bootstrapIP string, bootstrapPort int) error {
 	if !client.started {
+		client.started = true
+
+		go client.watchForAllowedConfirmation(client.ctx)
+		go client.watchForPaymentRequests(client.ctx)
+
 		err := client.node.JoinAndStart(processor, bootstrapIP, bootstrapPort)
 		if err != nil {
 			return err
 		}
-
-		client.Start(processor)
 	}
 
 	return nil
@@ -75,13 +76,15 @@ func (client *Client) Terminate() {
 
 func (client *Client) watchForPaymentRequests(ctx context.Context) {
 
-	userAddr := crypto.PubkeyToAddress(client.node.PrivateKey.PublicKey)
+	client.debug("Starting relay request watcher")
+
+	nodeID := client.node.ID
 
 	eth.EventWatcher(ctx, client.node.client, func(opts *bind.FilterOpts) {
 
 		safeEthclient := client.node.client
 
-		iterator, err := client.node.relay.Relay.FilterRelayPaymentRequested(opts, []common.Address{userAddr})
+		iterator, err := client.node.relay.Relay.FilterRelayPaymentRequested(opts, []*big.Int{nodeID.Base10()})
 		if err != nil {
 			client.debug(err)
 			return
@@ -89,7 +92,7 @@ func (client *Client) watchForPaymentRequests(ctx context.Context) {
 
 		for iterator.Next() {
 			relayEvent := iterator.Event
-			request, err := client.node.relay.Relay.GetRelay(nil, crypto.PubkeyToAddress(client.node.PrivateKey.PublicKey), relayEvent.Relay)
+			request, err := client.node.relay.Relay.GetRelay(nil, nodeID.Base10(), relayEvent.Relay)
 			if err != nil {
 				client.debug(err)
 				continue
@@ -119,7 +122,10 @@ func (client *Client) watchForPaymentRequests(ctx context.Context) {
 
 func (client *Client) watchForAllowedConfirmation(ctx context.Context) {
 
+	client.debug("Starting allowance watcher")
+
 	userAddr := crypto.PubkeyToAddress(client.node.PrivateKey.PublicKey)
+	nodeID := client.node.ID
 
 	eth.EventWatcher(ctx, client.node.client, func(opts *bind.FilterOpts) {
 
@@ -140,7 +146,7 @@ func (client *Client) watchForAllowedConfirmation(ctx context.Context) {
 					return err
 				}
 
-				tran, err := client.node.relay.Relay.HonorRelay(auth, userAddr, evnt.Value)
+				tran, err := client.node.relay.Relay.HonorRelay(auth, nodeID.Base10(), userAddr, evnt.Value)
 				if err != nil {
 					client.debug(err)
 				} else {

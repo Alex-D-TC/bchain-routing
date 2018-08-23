@@ -120,6 +120,7 @@ func PrepareTransactionAuth(client *ethclient.Client, key *ecdsa.PrivateKey) (*b
 	auth.Nonce = big.NewInt(int64(nonce))
 	auth.Value = big.NewInt(0)
 	auth.GasPrice = gasPrice
+	//auth.GasLimit = 500000
 
 	return auth, nil
 }

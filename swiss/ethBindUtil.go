@@ -5,69 +5,44 @@ import (
 	"math/big"
 
 	"github.com/alex-d-tc/bchain-routing/util"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 type SolidityRelay struct {
 
 	// Message validation data
+	Sender             *big.Int
 	SentBytes          *big.Int
 	SentBytesHash      []byte
 	SentBytesSignature []byte
-	SenderPublicKey    []byte
+	SenderPubKey       []byte
 
-	// Proof of relay 'compressed' data
-	IDS        [3][]*big.Int
-	Keys       [2][][]byte
-	Signatures [2][][]byte
-	PorRawHash [][]byte
+	// IPFS Proof of relay reference data
+	IpfsRelayHash []byte
+	Relayers      []common.Address
 }
 
-func MakeSolidityRelay(msg *Message) (SolidityRelay, error) {
+func MakeSolidityRelay(msg *Message, IPFSAddress []byte) (SolidityRelay, error) {
 	relay := SolidityRelay{}
 
+	relay.Sender = msg.Sender.Base10()
 	relay.SentBytes = big.NewInt(int64(len(msg.Payload)))
 	relay.SentBytesHash = msg.ByteCountHash
 	relay.SentBytesSignature = msg.ByteCountSignature
-	relay.SenderPublicKey = msg.SenderPubKeyRaw
-
-	IDS := []*big.Int{}
-	prevIDS := []*big.Int{}
-	nextIDS := []*big.Int{}
-
-	pubkey := [][]byte{}
-	prevPubkey := [][]byte{}
-
-	porSignature := [][]byte{}
-	porPrevSignature := [][]byte{}
-
-	porRawHash := [][]byte{}
+	relay.SenderPubKey = msg.SenderPubKeyRaw
+	relay.IpfsRelayHash = IPFSAddress
 
 	for i := 0; i < len(msg.RelayChain); i++ {
-
 		relayBlock := msg.RelayChain[i]
 
-		IDS = append(IDS, relayBlock.ID.Base10())
-		prevIDS = append(prevIDS, relayBlock.PrevID.Base10())
-		nextIDS = append(nextIDS, relayBlock.NextID.Base10())
-
-		pubkey = append(pubkey, relayBlock.PubKeyRaw)
-		prevPubkey = append(prevPubkey, relayBlock.PrevPubKeyRaw)
-
-		porSignature = append(porSignature, relayBlock.Signature)
-		porPrevSignature = append(porPrevSignature, relayBlock.PrevSignature)
-
-		rawHash, err := relayBlock.BlockHash256()
+		pubkey, err := util.UnmarshalPubKey(relayBlock.PubKeyRaw)
 		if err != nil {
 			return SolidityRelay{}, err
 		}
 
-		porRawHash = append(porRawHash, rawHash)
+		relay.Relayers = append(relay.Relayers, crypto.PubkeyToAddress(*pubkey))
 	}
-
-	relay.IDS = [3][]*big.Int{IDS, prevIDS, nextIDS}
-	relay.Keys = [2][][]byte{pubkey, prevPubkey}
-	relay.Signatures = [2][][]byte{porSignature, porPrevSignature}
-	relay.PorRawHash = porRawHash
 
 	return relay, nil
 }

@@ -1,5 +1,4 @@
 pragma solidity ^0.4.24;
-pragma experimental ABIEncoderV2;
 
 import "./SimpleToken.sol";
 
@@ -7,6 +6,7 @@ contract RelayHandler {
 
     struct Relay {
 
+        uint128 sender;
         uint128 sentBytes;
         bytes sentBytesHash;
         bytes sentBytesSignature;
@@ -21,11 +21,11 @@ contract RelayHandler {
         Relay relay;
     }
 
-    event RelayHonored(address indexed user, uint relay, uint val);
-    event RelayPaymentRequested(address indexed user, uint relay);
+    event RelayHonored(uint128 indexed sender, address indexed honorer, uint relay, uint val);
+    event RelayPaymentRequested(uint128 indexed sender, uint relay);
     
-    mapping(address => RelayRequest[]) relays;
-    mapping(address => uint) nextToHonor;
+    mapping(uint128 => RelayRequest[]) relays;
+    mapping(uint128 => uint) nextToHonor;
 
     SimpleToken token;
 
@@ -37,6 +37,7 @@ contract RelayHandler {
     }
 
     function submitRelay(
+        uint128 _sender,
         uint128 _sentBytes,
         bytes memory _sentBytesHash, 
         bytes memory _sentBytesSignature, 
@@ -45,6 +46,7 @@ contract RelayHandler {
         address[] memory _relayers) public returns(uint) {
         
         Relay memory relay = Relay({
+            receiver: _sender,
             sentBytes: _sentBytes,
             sentBytesHash: _sentBytesHash,
             sentBytesSignature: _sentBytesSignature,
@@ -58,11 +60,13 @@ contract RelayHandler {
             relay: relay
         });
 
-        address addr = addressFromBytes(relay.senderPublicKey);
-        return relays[addr].push(request);
+        uint relayId = relays[_sender].push(request);
+        emit RelayPaymentRequested(_sender, relayId);
+        
+        return relayId;
     }
 
-    function getRelay(address _addr, uint _id) public view returns (
+    function getRelay(uint128 _addr, uint _id) public view returns (
         uint128 sentBytes,
         bytes memory sentBytesSignature,
         bytes memory senderPublicKey,
@@ -81,27 +85,27 @@ contract RelayHandler {
         ipfsRelayHash = relay.ipfsRelayHash;                
     }
 
-    function honorRelay(address _userAddr, uint _totalVal) public {
+    function honorRelay(uint128 _sender, address _honorerAddr, uint _totalVal) public {
     
-        uint nextRelay = nextToHonor[_userAddr];
+        uint nextRelay = nextToHonor[_sender];
 
         // Get the next possible relay candidate
-        for (; nextRelay < relays[_userAddr].length; nextRelay++) {
-            if(relays[_userAddr][i].relay.sentBytes == _totalVal) {
+        for (; nextRelay < relays[_sender].length; nextRelay++) {
+            if(relays[_sender][nextRelay].relay.sentBytes == _totalVal) {
                 break;
             }
         }
 
-        require(relays[_userAddr][nextRelay].relay.sentBytes == _totalVal);
+        require(relays[_sender][nextRelay].relay.sentBytes == _totalVal);
 
         // We are highly optimistic people :>
-        relays[_userAddr][nextRelay].honored = true;
+        relays[_sender][nextRelay].honored = true;
 
         // Claim the funds
-        token.claimAllowance(_userAddr, relays[_userAddr][nextRelay].relay.sentBytes);
+        token.claimAllowance(_honorerAddr, relays[_sender][nextRelay].relay.sentBytes);
         
         // Send them to the relevant parties
-        address[] storage relayers = relays[_userAddr][nextRelay].relay.relayers;
+        address[] storage relayers = relays[_sender][nextRelay].relay.relayers;
 
         // Split the funds (evenly for now)
         uint256 valChunk = _totalVal / relayers.length;
@@ -118,11 +122,11 @@ contract RelayHandler {
         }
 
         uint next = nextRelay + 1;
-        for(; next < relays[_userAddr].length && relays[_userAddr][next].honored; next++){}
+        for(; next < relays[_sender].length && relays[_sender][next].honored; next++){}
 
-        nextToHonor[_userAddr] = next;
+        nextToHonor[_sender] = next;
 
-        emit RelayHonored(_userAddr, nextRelay, _totalVal);
+        emit RelayHonored(_sender, _honorerAddr, nextRelay, _totalVal);
     }
 
     function switchToken(SimpleToken _token) public {

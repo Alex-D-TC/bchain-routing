@@ -46,7 +46,7 @@ contract RelayHandler {
         address[] memory _relayers) public returns(uint) {
         
         Relay memory relay = Relay({
-            receiver: _sender,
+            sender: _sender,
             sentBytes: _sentBytes,
             sentBytesHash: _sentBytesHash,
             sentBytesSignature: _sentBytesSignature,

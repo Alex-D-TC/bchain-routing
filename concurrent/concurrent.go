@@ -2,7 +2,8 @@ package concurrent
 
 import (
 	"context"
-	"fmt"
+	"log"
+	"os"
 
 	"github.com/golang-collections/go-datastructures/queue"
 )
@@ -11,6 +12,8 @@ type TransactionQueue struct {
 	q             *queue.Queue
 	cancelRoutine context.CancelFunc
 	ctx           context.Context
+
+	logger *log.Logger
 }
 
 func MakeTransactionQueue() *TransactionQueue {
@@ -21,6 +24,7 @@ func MakeTransactionQueue() *TransactionQueue {
 		q:             queue.New(16),
 		ctx:           ctx,
 		cancelRoutine: cancelFunc,
+		logger:        log.New(os.Stdout, "Transaction queue: ", log.Ldate|log.Ltime),
 	}
 
 	go tq.startWatcher()
@@ -35,7 +39,7 @@ func (tq *TransactionQueue) startWatcher() {
 	for {
 		trans, err := tq.q.Get(1)
 		if err != nil {
-			fmt.Println(err)
+			tq.debug(err)
 			return
 		}
 
@@ -45,7 +49,7 @@ func (tq *TransactionQueue) startWatcher() {
 		case func() error:
 			err := tran.(func() error)()
 			if err != nil {
-				fmt.Println(err)
+				tq.debug(err)
 				tq.q.Put(err)
 			}
 			break
@@ -75,4 +79,8 @@ func (tq *TransactionQueue) Submit(transaction func() error) error {
 func (tq *TransactionQueue) Dispose() {
 	tq.cancelRoutine()
 	tq.q.Dispose()
+}
+
+func (tq *TransactionQueue) debug(msg interface{}) {
+	tq.logger.Println(msg)
 }

@@ -1,7 +1,8 @@
 package routingdriver
 
 import (
-	"fmt"
+	"log"
+	"os"
 
 	"secondbit.org/wendy"
 )
@@ -10,17 +11,20 @@ import (
 type wendyHook struct {
 	OutputChan chan<- []byte
 	onForward  func(*wendy.Message, wendy.NodeID) bool
+
+	logger *log.Logger
 }
 
 func makeWendyHook(outputChan chan<- []byte, onForward func(*wendy.Message, wendy.NodeID) bool) *wendyHook {
 	return &wendyHook{
 		OutputChan: outputChan,
 		onForward:  onForward,
+		logger:     log.New(os.Stdout, "Wendy Hook: ", log.Ltime|log.Ldate),
 	}
 }
 
 func (app *wendyHook) OnDeliver(msg wendy.Message) {
-	//fmt.Println("Received message: ", msg)
+	//app.debug("Received message: ", msg)
 	app.OutputChan <- msg.Value
 }
 
@@ -33,20 +37,24 @@ func (app *wendyHook) OnError(err error) {
 }
 
 func (app *wendyHook) OnNewLeaves(leaves []*wendy.Node) {
-	//fmt.Println("Leaf set changed: ", leaves)
+	//app.debug("Leaf set changed: ", leaves)
 }
 
 func (app *wendyHook) OnNodeJoin(node wendy.Node) {
-	fmt.Println("Node joined: ", node.ID)
+	app.debug("Node joined: ", node.ID)
 }
 
 func (app *wendyHook) OnNodeExit(node wendy.Node) {
-	fmt.Println("Node left: ", node.ID)
+	app.debug("Node left: ", node.ID)
 }
 
 func (app *wendyHook) OnHeartbeat(node wendy.Node) {
-	fmt.Println("Received heartbeat from ", node.ID)
-	fmt.Println(node.ID[0], node.ID[1])
+	app.debug("Received heartbeat from ", node.ID)
+	app.debug(node.ID[0], node.ID[1])
+}
+
+func (app *wendyHook) debug(msg ...interface{}) {
+	app.logger.Println(msg...)
 }
 
 type credentials struct {

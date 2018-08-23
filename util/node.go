@@ -4,7 +4,6 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
-	"fmt"
 
 	"secondbit.org/wendy"
 )
@@ -26,7 +25,6 @@ func NodeIDFromStringSHA(str string) wendy.NodeID {
 func NodeIDFromHexForm(str string) (wendy.NodeID, error) {
 	bytes, err := hex.DecodeString(str)
 	if err != nil {
-		fmt.Println(err)
 		return wendy.NodeID{}, err
 	}
 

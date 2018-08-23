@@ -10,10 +10,37 @@ import (
 
 	"github.com/alex-d-tc/bchain-routing/concurrent"
 
+	ethBind "github.com/alex-d-tc/bchain-routing/eth/build-go"
+
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 )
+
+type CoinContract struct {
+	Coin     *ethBind.SwissCoin
+	CoinAddr common.Address
+}
+
+func MakeCoinContract(coin *ethBind.SwissCoin, coinAddr common.Address) CoinContract {
+	return CoinContract{
+		Coin:     coin,
+		CoinAddr: coinAddr,
+	}
+}
+
+type RelayContract struct {
+	Relay     *ethBind.RelayHandler
+	RelayAddr common.Address
+}
+
+func MakeRelayContract(relay *ethBind.RelayHandler, relayAddr common.Address) RelayContract {
+	return RelayContract{
+		Relay:     relay,
+		RelayAddr: relayAddr,
+	}
+}
 
 type ThreadsafeClient struct {
 	sync.RWMutex

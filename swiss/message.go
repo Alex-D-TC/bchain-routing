@@ -198,6 +198,6 @@ func signatureValidation(relayBlock *RelayBlock) (bool, error) {
 }
 
 func DefaultMessageProcessor(msg *Message) {
-	fmt.Println("Processing message with the default processor...")
+	//fmt.Println("Processing message with the default processor...")
 	fmt.Println(string(msg.Payload))
 }

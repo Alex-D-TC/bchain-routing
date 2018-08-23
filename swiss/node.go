@@ -6,12 +6,9 @@ import (
 	"log"
 	"os"
 
-	"github.com/ethereum/go-ethereum/common"
-
 	"github.com/ethereum/go-ethereum/ethclient"
 
 	"github.com/alex-d-tc/bchain-routing/eth"
-	ethBind "github.com/alex-d-tc/bchain-routing/eth/build-go"
 	"github.com/alex-d-tc/bchain-routing/routingdriver"
 	"github.com/alex-d-tc/bchain-routing/util"
 	"secondbit.org/wendy"
@@ -28,14 +25,11 @@ type SwissNode struct {
 
 	client *eth.ThreadsafeClient
 
-	relay     *ethBind.RelayHandler
-	relayAddr common.Address
-
-	coin     *ethBind.SwissCoin
-	coinAddr common.Address
+	coin  eth.CoinContract
+	relay eth.RelayContract
 }
 
-func InitSwissNode(localIP string, port int, publicIP string, privKey *ecdsa.PrivateKey, client *eth.ThreadsafeClient, relayInstance *ethBind.RelayHandler, relayAddr common.Address, coinInstance *ethBind.SwissCoin, coinAddr common.Address) *SwissNode {
+func InitSwissNode(localIP string, port int, publicIP string, privKey *ecdsa.PrivateKey, client *eth.ThreadsafeClient, relay eth.RelayContract, coin eth.CoinContract) *SwissNode {
 
 	id := util.NodeIDFromStringSHA(fmt.Sprintf("%s:%d", localIP, port))
 
@@ -45,10 +39,8 @@ func InitSwissNode(localIP string, port int, publicIP string, privKey *ecdsa.Pri
 		logger:     log.New(os.Stdout, "Swiss node ", log.Ldate|log.Ltime),
 		PrivateKey: privKey,
 		client:     client,
-		relay:      relayInstance,
-		relayAddr:  relayAddr,
-		coin:       coinInstance,
-		coinAddr:   coinAddr,
+		relay:      relay,
+		coin:       coin,
 	}
 
 	node.driver = routingdriver.MakeRoutingDriver(id, localIP, publicIP, port, node.forwardingProcessor)
@@ -100,8 +92,8 @@ func (node *SwissNode) SetLogger(logger *log.Logger) {
 	node.driver.SetLogger(logger)
 }
 
-func (node *SwissNode) debug(msg string) {
-	node.logger.Println(msg)
+func (node *SwissNode) debug(msg ...interface{}) {
+	node.logger.Println(msg...)
 }
 
 func (node *SwissNode) forwardingProcessor(rawPayload []byte, next wendy.NodeID) ([]byte, bool) {
@@ -134,17 +126,17 @@ func (node *SwissNode) forwardingProcessor(rawPayload []byte, next wendy.NodeID)
 		node.client.SubmitTransaction(func(client *ethclient.Client) error {
 			auth, err := eth.PrepareTransactionAuth(client, node.PrivateKey)
 			if err != nil {
-				fmt.Println(err)
+				node.debug(err)
 				return err
 			}
 
 			solRelay, err := MakeSolidityRelay(&msg)
 			if err != nil {
-				fmt.Println(err)
+				node.debug(err)
 				return err
 			}
 
-			tran, err := node.relay.SubmitRelay(auth,
+			tran, err := node.relay.Relay.SubmitRelay(auth,
 				solRelay.SentBytes,
 				solRelay.SentBytesHash,
 				solRelay.SentBytesSignature,
@@ -155,9 +147,9 @@ func (node *SwissNode) forwardingProcessor(rawPayload []byte, next wendy.NodeID)
 				solRelay.PorRawHash)
 
 			if err != nil {
-				fmt.Println(err)
+				node.debug(err)
 			} else {
-				fmt.Println(tran.Hash().Hex())
+				node.debug(tran.Hash().Hex())
 			}
 
 			return err

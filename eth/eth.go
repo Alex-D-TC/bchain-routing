@@ -95,21 +95,17 @@ func GetRelayHandler(relayAddr common.Address, client *ThreadsafeClient) (RelayC
 	return RelayContract{Relay: relay, RelayAddr: relayAddr}, err
 }
 
-func PrepareTransactionAuth(client *ThreadsafeClient, key *ecdsa.PrivateKey) (*bind.TransactOpts, error) {
+func PrepareTransactionAuth(client *ethclient.Client, key *ecdsa.PrivateKey) (*bind.TransactOpts, error) {
 
-	client.RLock()
-
-	nonce, err := client.client.PendingNonceAt(context.Background(), crypto.PubkeyToAddress(key.PublicKey))
+	nonce, err := client.PendingNonceAt(context.Background(), crypto.PubkeyToAddress(key.PublicKey))
 	if err != nil {
 		return nil, err
 	}
 
-	gasPrice, err := client.client.SuggestGasPrice(context.Background())
+	gasPrice, err := client.SuggestGasPrice(context.Background())
 	if err != nil {
 		return nil, err
 	}
-
-	client.RUnlock()
 
 	auth := bind.NewKeyedTransactor(key)
 	auth.Nonce = big.NewInt(int64(nonce))

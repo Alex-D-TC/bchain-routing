@@ -50,6 +50,7 @@ func (client *Client) watchForPaymentRequests(ctx context.Context) {
 			}
 
 			safeEthclient.SubmitTransaction(func(ethclient *ethclient.Client) error {
+
 				auth, err := eth.PrepareTransactionAuth(ethclient, client.node.PrivateKey)
 				if err != nil {
 					client.debug(err)

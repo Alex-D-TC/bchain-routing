@@ -1,0 +1,1 @@
+%GOPATH%/bin/bchain-routing cluster-start --local-ip 127.0.0.1 --port 8000 --key %GOPATH%/src/github.com/alex-d-tc/bchain-routing/RES/eth.key --relay 0x55c8eb588c35599966e1927e4a089a3a03bef165 --coin 0xddf56ebe8a2751ce2d5c84070e7c87ec1bc1d344

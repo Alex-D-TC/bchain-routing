@@ -3,6 +3,7 @@ package swiss
 import (
 	"crypto/ecdsa"
 	"fmt"
+	"io"
 	"log"
 	"os"
 
@@ -87,9 +88,9 @@ func (node *SwissNode) Send(destination wendy.NodeID, payload []byte) error {
 	return node.driver.Send(destination, encodingResult)
 }
 
-func (node *SwissNode) SetLogger(logger *log.Logger) {
-	node.logger = logger
-	node.driver.SetLogger(logger)
+func (node *SwissNode) SetOutput(writer io.Writer) {
+	node.logger = log.New(writer, node.logger.Prefix(), node.logger.Flags())
+	node.driver.SetOutput(writer)
 }
 
 func (node *SwissNode) debug(msg ...interface{}) {

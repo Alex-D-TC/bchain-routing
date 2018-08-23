@@ -1,6 +1,7 @@
 package routingdriver
 
 import (
+	"io"
 	"log"
 	"os"
 
@@ -51,6 +52,10 @@ func (app *wendyHook) OnNodeExit(node wendy.Node) {
 func (app *wendyHook) OnHeartbeat(node wendy.Node) {
 	app.debug("Received heartbeat from ", node.ID)
 	app.debug(node.ID[0], node.ID[1])
+}
+
+func (app *wendyHook) SetOutput(writer io.Writer) {
+	app.logger = log.New(writer, app.logger.Prefix(), app.logger.Flags())
 }
 
 func (app *wendyHook) debug(msg ...interface{}) {

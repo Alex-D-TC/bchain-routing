@@ -2,6 +2,7 @@ package routingdriver
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"os"
 
@@ -91,8 +92,8 @@ func (driver *RoutingDriver) Send(destinationAddr wendy.NodeID, messageData []by
 	return driver.cluster.Send(message)
 }
 
-func (driver *RoutingDriver) SetLogger(logger *log.Logger) {
-	driver.logger = logger
+func (driver *RoutingDriver) SetOutput(writer io.Writer) {
+	driver.logger = log.New(writer, driver.logger.Prefix(), driver.logger.Flags())
 }
 
 func (driver *RoutingDriver) processMessages(processor func([]byte)) {

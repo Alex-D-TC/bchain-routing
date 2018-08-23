@@ -2,6 +2,7 @@ package concurrent
 
 import (
 	"context"
+	"io"
 	"log"
 	"os"
 
@@ -79,6 +80,10 @@ func (tq *TransactionQueue) Submit(transaction func() error) error {
 func (tq *TransactionQueue) Dispose() {
 	tq.cancelRoutine()
 	tq.q.Dispose()
+}
+
+func (tq *TransactionQueue) SetOutput(writer io.Writer) {
+	tq.logger = log.New(writer, tq.logger.Prefix(), tq.logger.Flags())
 }
 
 func (tq *TransactionQueue) debug(msg interface{}) {

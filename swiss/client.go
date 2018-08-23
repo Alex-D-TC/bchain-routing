@@ -2,6 +2,7 @@ package swiss
 
 import (
 	"context"
+	"io"
 	"log"
 	"os"
 
@@ -104,6 +105,10 @@ func (client *Client) WatchForAllowedConfirmation(ctx context.Context) {
 		}
 
 	})
+}
+
+func (client *Client) SetOutput(writer io.Writer) {
+	client.logger = log.New(writer, client.logger.Prefix(), client.logger.Flags())
 }
 
 func (client *Client) debug(msg ...interface{}) {

@@ -6,6 +6,10 @@ import (
 	"log"
 	"os"
 
+	"github.com/ethereum/go-ethereum/ethclient"
+
+	"github.com/alex-d-tc/bchain-routing/eth"
+	ethBind "github.com/alex-d-tc/bchain-routing/eth/build-go"
 	"github.com/alex-d-tc/bchain-routing/routingdriver"
 	"github.com/alex-d-tc/bchain-routing/util"
 	"secondbit.org/wendy"
@@ -19,9 +23,13 @@ type SwissNode struct {
 
 	driver *routingdriver.RoutingDriver
 	logger *log.Logger
+
+	client *eth.ThreadsafeClient
+	relay  *ethBind.RelayHandler
+	coin   *ethBind.SwissCoin
 }
 
-func InitSwissNode(localIP string, port int, publicIP string, privKey *ecdsa.PrivateKey) *SwissNode {
+func InitSwissNode(localIP string, port int, publicIP string, privKey *ecdsa.PrivateKey, client *eth.ThreadsafeClient, relayInstance *ethBind.RelayHandler, coinInstance *ethBind.SwissCoin) *SwissNode {
 
 	id := util.NodeIDFromStringSHA(fmt.Sprintf("%s:%d", localIP, port))
 
@@ -30,6 +38,9 @@ func InitSwissNode(localIP string, port int, publicIP string, privKey *ecdsa.Pri
 		started:    false,
 		logger:     log.New(os.Stdout, "Swiss node ", log.Ldate|log.Ltime),
 		PrivateKey: privKey,
+		client:     client,
+		relay:      relayInstance,
+		coin:       coinInstance,
 	}
 
 	node.driver = routingdriver.MakeRoutingDriver(id, localIP, publicIP, port, node.forwardingProcessor)
@@ -108,6 +119,41 @@ func (node *SwissNode) forwardingProcessor(rawPayload []byte, next wendy.NodeID)
 	if err != nil {
 		node.debug(fmt.Sprintf("%s", err))
 		return rawPayload, false
+	}
+
+	// Last node on the route. Send relay payment request to the blockchain
+	if next == msg.Receiver {
+		node.client.SubmitTransaction(func(client *ethclient.Client) error {
+			auth, err := eth.PrepareTransactionAuth(client, node.PrivateKey)
+			if err != nil {
+				fmt.Println(err)
+				return err
+			}
+
+			solRelay, err := MakeSolidityRelay(&msg)
+			if err != nil {
+				fmt.Println(err)
+				return err
+			}
+
+			tran, err := node.relay.SubmitRelay(auth,
+				solRelay.SentBytes,
+				solRelay.SentBytesHash,
+				solRelay.SentBytesSignature,
+				solRelay.SenderPublicKey,
+				solRelay.IDS,
+				solRelay.Keys,
+				solRelay.Signatures,
+				solRelay.PorRawHash)
+
+			if err != nil {
+				fmt.Println(err)
+			} else {
+				fmt.Println(tran.Hash().Hex())
+			}
+
+			return err
+		})
 	}
 
 	// Message encoding to raw data

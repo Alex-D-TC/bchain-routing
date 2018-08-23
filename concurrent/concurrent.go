@@ -68,7 +68,7 @@ func (tq *TransactionQueue) startWatcher() {
 
 }
 
-func (tq *TransactionQueue) Submit(transaction func()) error {
+func (tq *TransactionQueue) Submit(transaction func() error) error {
 	return tq.q.Put(transaction)
 }
 

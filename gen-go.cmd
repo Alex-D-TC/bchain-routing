@@ -1,1 +1,1 @@
-abigen -sol eth/contracts/DeployHack.sol -pkg eth -out eth/build-go/Bindings.go
+abigen -sol eth/contracts/DeployHack.sol -pkg ethBind -out eth/build-go/Bindings.go

@@ -24,11 +24,11 @@ func GetPrivateIP() (string, error) {
 
 func GetPublicIP() (string, error) {
 	resp, err := http.Get("http://myexternalip.com/raw")
-	defer resp.Body.Close()
-
 	if err != nil {
 		return "", err
 	}
+
+	defer resp.Body.Close()
 
 	resultBytes := bytes.NewBuffer([]byte{})
 	_, err = io.Copy(resultBytes, resp.Body)

@@ -7,10 +7,36 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/alex-d-tc/bchain-routing/concurrent"
+
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 )
+
+type ThreadsafeClient struct {
+	client *ethclient.Client
+	queue  *concurrent.TransactionQueue
+}
+
+func MakeThreadsafeClient(client *ethclient.Client) *ThreadsafeClient {
+	result := ThreadsafeClient{
+		client: client,
+		queue:  concurrent.MakeTransactionQueue(),
+	}
+
+	return &result
+}
+
+func (client *ThreadsafeClient) SubmitTransaction(tran func(*ethclient.Client) error) error {
+	return client.queue.Submit(func() error {
+		return tran(client.client)
+	})
+}
+
+func (client *ThreadsafeClient) Dispose() {
+	client.queue.Dispose()
+}
 
 func GetClient(rawUrl string) (*ethclient.Client, error) {
 	return ethclient.Dial(rawUrl)

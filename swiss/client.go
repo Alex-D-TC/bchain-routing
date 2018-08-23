@@ -40,6 +40,7 @@ func MakeClient(node *SwissNode) *Client {
 func (client *Client) Start() {
 	if !client.started {
 		client.started = true
+		client.node.Start(DefaultMessageProcessor)
 
 		go client.watchForAllowedConfirmation(client.ctx)
 		go client.watchForPaymentRequests(client.ctx)

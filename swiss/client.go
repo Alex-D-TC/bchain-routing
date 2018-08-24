@@ -93,9 +93,10 @@ func (client *Client) watchForPaymentRequests(ctx context.Context) {
 
 		for iterator.Next() {
 
-			client.debug("Honoring request")
-
 			relayEvent := iterator.Event
+
+			client.debug(fmt.Sprintf("Honoring relay request for id node %d of id %d", nodeID.Base10(), relayEvent.Relay))
+
 			request, err := client.node.relay.Relay.GetRelay(nil, nodeID.Base10(), relayEvent.Relay)
 			if err != nil {
 				client.debug(err)
@@ -112,7 +113,7 @@ func (client *Client) watchForPaymentRequests(ctx context.Context) {
 					return err, false
 				}
 
-				tran, err := client.node.coin.Coin.Allow(auth, client.node.relay.RelayAddr, request.SentBytes)
+				tran, err := client.node.coin.Coin.Allow(auth, client.node.relay.RelayAddr, big.NewInt(request.SentBytes.Int64()))
 				if err != nil {
 					client.debug(err)
 				} else {

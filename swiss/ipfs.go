@@ -15,7 +15,12 @@ func IPFSStoreRelayFile(msg *Message) (string, error) {
 		return "", err
 	}
 
-	return util.IPFSAddFile(path)
+	ipfsFile, err := util.IPFSAddFile(path)
+	if err != nil {
+		return "", err
+	}
+
+	return ipfsFile.Name, err
 }
 
 func IPFSReadRelayFile(addr string) ([]RelayBlock, error) {

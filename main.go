@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math/big"
 
 	"secondbit.org/wendy"
 
@@ -16,7 +17,48 @@ import (
 
 func main() {
 	//testSendRelayRequest()
+	/*
+		id, err := util.NodeIDFromHexForm("54e9cbfb5e6b16c5220a7468c86164b0")
+		if err != nil {
+			panic(err)
+		}
+
+		testGetRelayRequest(id.Base10(), big.NewInt(0))
+	*/
 	cmd.Execute()
+}
+
+func testGetRelayRequest(id *big.Int, relayId *big.Int) {
+	client, err := eth.GetThreadsafeClient("https://ropsten.infura.io")
+	if err != nil {
+		panic(err)
+	}
+
+	contracts, err := util.ReadContractsConfig("./RES/contracts.json")
+	if err != nil {
+		panic(err)
+	}
+
+	relay, err := eth.GetRelayHandler(common.HexToAddress(contracts.Relay), client)
+	if err != nil {
+		panic(err)
+	}
+
+	res, err := relay.Relay.GetRelay(nil, id, relayId)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(res)
+
+	/*
+		raw, err := util.IPFSReadFile(string(res.IpfsRelayHash))
+		if err != nil {
+			panic(err)
+		}
+
+		fmt.Println(string(raw))
+	*/
 }
 
 func testSendRelayRequest() {

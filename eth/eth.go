@@ -145,11 +145,6 @@ func EventWatcher(ctx context.Context, client *ThreadsafeClient, filterProcessor
 
 		block := uint64(header.Number().Int64())
 
-		// TODO: Remove l8er
-		if lastBlock == 0 {
-			lastBlock = block
-		}
-
 		if lastBlock == block {
 			fmt.Println("Block already processed. Sleeping")
 			continue

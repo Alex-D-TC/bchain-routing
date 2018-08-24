@@ -11,9 +11,15 @@ import (
 	"path/filepath"
 )
 
+type IPFSFile struct {
+	Name string
+	Hash string
+	Size uint64
+}
+
 func IPFSReadFile(addr string) ([]byte, error) {
 
-	resp, err := http.Get(fmt.Sprintf("http://localhost:5001/api/v0/cat?arg=", addr))
+	resp, err := http.Get(fmt.Sprintf("http://localhost:5001/api/v0/cat?arg=%s", addr))
 	if err != nil {
 		return nil, err
 	}
@@ -23,10 +29,10 @@ func IPFSReadFile(addr string) ([]byte, error) {
 	return rawJSON, err
 }
 
-func IPFSAddFile(path string) (string, error) {
+func IPFSAddFile(path string) (IPFSFile, error) {
 	file, err := os.Open(path)
 	if err != nil {
-		return "", err
+		return IPFSFile{}, err
 	}
 	defer file.Close()
 
@@ -34,7 +40,7 @@ func IPFSAddFile(path string) (string, error) {
 	writer := multipart.NewWriter(body)
 	part, err := writer.CreateFormFile("file", filepath.Base(file.Name()))
 	if err != nil {
-		return "", err
+		return IPFSFile{}, err
 	}
 
 	io.Copy(part, file)
@@ -43,14 +49,21 @@ func IPFSAddFile(path string) (string, error) {
 	resp, err := http.Post("http://localhost:5001/api/v0/add", writer.FormDataContentType(), body)
 	if err != nil {
 		fmt.Println(err)
-		return "", err
+		return IPFSFile{}, err
 	}
 	defer resp.Body.Close()
 
 	result, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Println(err)
-		return "", err
+		return IPFSFile{}, err
 	}
-	return string(result), nil
+
+	var ipfsFile IPFSFile
+	err = JSONDecode(result, &ipfsFile)
+	if err != nil {
+		return IPFSFile{}, err
+	}
+
+	return ipfsFile, nil
 }

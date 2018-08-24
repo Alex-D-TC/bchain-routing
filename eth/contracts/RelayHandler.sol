@@ -60,7 +60,7 @@ contract RelayHandler {
             relay: relay
         });
 
-        uint relayId = relays[_sender].push(request);
+        uint relayId = relays[_sender].push(request) - 1;
         emit RelayPaymentRequested(_sender, relayId);
         
         return relayId;

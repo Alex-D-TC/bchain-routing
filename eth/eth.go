@@ -58,14 +58,14 @@ func MakeThreadsafeClient(client *ethclient.Client) *ThreadsafeClient {
 	return &result
 }
 
-func (client *ThreadsafeClient) SubmitTransaction(tran func(*ethclient.Client) error) error {
-	return client.queue.Submit(func() error {
+func (client *ThreadsafeClient) SubmitTransaction(tran func(*ethclient.Client) (error, bool)) error {
+	return client.queue.Submit(func() (error, bool) {
 		client.Lock()
 
-		err := tran(client.client)
+		err, cont := tran(client.client)
 
 		client.Unlock()
-		return err
+		return err, cont
 	})
 }
 
@@ -128,7 +128,7 @@ func PrepareTransactionAuth(client *ethclient.Client, key *ecdsa.PrivateKey) (*b
 func EventWatcher(ctx context.Context, client *ThreadsafeClient, filterProcessor func(*bind.FilterOpts)) {
 
 	done := false
-	var lastEnd *big.Int
+	lastBlock := uint64(0)
 
 	for {
 
@@ -145,22 +145,26 @@ func EventWatcher(ctx context.Context, client *ThreadsafeClient, filterProcessor
 
 		block := uint64(header.Number().Int64())
 
-		if lastEnd != nil && lastEnd.Cmp(header.Number()) == 0 {
+		// TODO: Remove l8er
+		if lastBlock == 0 {
+			lastBlock = block
+		}
+
+		if lastBlock == block {
 			fmt.Println("Block already processed. Sleeping")
 			continue
 		}
 
-		lastEnd = header.Number()
-
-		fmt.Println("Checking events in block: ", block)
+		fmt.Println(fmt.Sprintf("Checking events from block %d to block %d", lastBlock+1, block))
 
 		opts := &bind.FilterOpts{
 			Context: ctx,
-			Start:   block,
+			Start:   lastBlock + 1,
 			End:     &block,
 		}
 
 		filterProcessor(opts)
+		lastBlock = block
 
 		select {
 		case <-ctx.Done():

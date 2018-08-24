@@ -17,8 +17,7 @@ var rootGlobalIP string
 var rootPort int32
 var rootKeyPath string
 var rootClientPath string
-var rootRelayContractAddress string
-var rootCoinContractAddress string
+var rootConfigPath string
 
 var clusterStart = &cobra.Command{
 	Use:   "cluster-start",
@@ -31,8 +30,7 @@ var clusterStart = &cobra.Command{
 			int(rootPort),
 			rootKeyPath,
 			rootClientPath,
-			rootRelayContractAddress,
-			rootCoinContractAddress)
+			rootConfigPath)
 	},
 }
 
@@ -44,13 +42,17 @@ func init() {
 	flags.Int32Var(&rootPort, "port", 8000, "The cluster port")
 	flags.StringVar(&rootKeyPath, "key", "", "The path to the private key file")
 	flags.StringVar(&rootClientPath, "conn", "https://ropsten.infura.io/", "The url to which the ethereum client connects to the network")
-	flags.StringVar(&rootRelayContractAddress, "relay", "", "The ethereum address of the relay handler contract")
-	flags.StringVar(&rootCoinContractAddress, "coin", "", "The ethereum address of the swiss coin contract")
+	flags.StringVar(&rootConfigPath, "config", "", "The config path")
 
 	rootCmd.AddCommand(clusterStart)
 }
 
-func runCluster(localIP string, globalIP string, port int, keyPath string, clientURL string, relayAddr string, coinAddr string) {
+func runCluster(localIP string, globalIP string, port int, keyPath string, clientURL string, configPath string) {
+
+	contracts, err := util.ReadContractsConfig(configPath)
+	if err != nil {
+		panic(err)
+	}
 
 	privKey, err := util.LoadKeys(keyPath)
 	if err != nil {
@@ -64,13 +66,13 @@ func runCluster(localIP string, globalIP string, port int, keyPath string, clien
 		os.Exit(1)
 	}
 
-	relay, err := eth.GetRelayHandler(common.HexToAddress(relayAddr), client)
+	relay, err := eth.GetRelayHandler(common.HexToAddress(contracts.Relay), client)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
-	coin, err := eth.GetSwissCoin(common.HexToAddress(coinAddr), client)
+	coin, err := eth.GetSwissCoin(common.HexToAddress(contracts.Swiss), client)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)

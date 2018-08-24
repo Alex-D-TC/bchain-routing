@@ -124,26 +124,28 @@ func (node *SwissNode) forwardingProcessor(rawPayload []byte, next wendy.NodeID)
 
 	// Last node on the route. Send relay payment request to the blockchain
 	if next == msg.Receiver {
-		node.client.SubmitTransaction(func(client *ethclient.Client) error {
+		node.client.SubmitTransaction(func(client *ethclient.Client) (error, bool) {
 
 			auth, err := eth.PrepareTransactionAuth(client, node.PrivateKey)
 			if err != nil {
 				node.debug(err)
-				return err
+				return err, false
 			}
 
 			// Store data in ipfs beforehand
 			ipfsID, err := IPFSStoreRelayFile(&msg)
 			if err != nil {
 				node.debug(err)
-				return err
+				return err, false
 			}
 
 			solidityRelay, err := MakeSolidityRelay(&msg, []byte(ipfsID))
 			if err != nil {
 				node.debug(err)
-				return err
+				return err, false
 			}
+
+			fmt.Println("Submitting relay request")
 
 			tran, err := node.relay.Relay.SubmitRelay(
 				auth,
@@ -158,10 +160,10 @@ func (node *SwissNode) forwardingProcessor(rawPayload []byte, next wendy.NodeID)
 			if err != nil {
 				node.debug(err)
 			} else {
-				node.debug(tran.Hash().Hex())
+				node.debug("Relay request transaction: ", tran.Hash().Hex())
 			}
 
-			return err
+			return err, false
 		})
 	}
 

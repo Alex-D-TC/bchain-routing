@@ -49,11 +49,13 @@ func (tq *TransactionQueue) startWatcher() {
 		// Try processing a transaction
 		tran := trans[0]
 		switch tran.(type) {
-		case func() error:
-			err := tran.(func() error)()
+		case func() (error, bool):
+			err, cont := tran.(func() (error, bool))()
 			if err != nil {
 				tq.debug(err)
-				tq.q.Put(tran)
+				if cont {
+					tq.q.Put(tran)
+				}
 			}
 			break
 		}
@@ -76,7 +78,7 @@ func (tq *TransactionQueue) startWatcher() {
 	tq.debug("Watcher stopping")
 }
 
-func (tq *TransactionQueue) Submit(transaction func() error) error {
+func (tq *TransactionQueue) Submit(transaction func() (error, bool)) error {
 	return tq.q.Put(transaction)
 }
 

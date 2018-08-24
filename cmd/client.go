@@ -26,8 +26,7 @@ var clientCmd = &cobra.Command{
 			int(clientBootstrapPort),
 			clientKeyPath,
 			clientClientPath,
-			clientRelayContractAddress,
-			clientCoinContractAddress)
+			clientConfigPath)
 	},
 }
 
@@ -38,8 +37,7 @@ var clientBootstrapIP string
 var clientBootstrapPort int32
 var clientKeyPath string
 var clientClientPath string
-var clientRelayContractAddress string
-var clientCoinContractAddress string
+var clientConfigPath string
 
 func init() {
 	flags := clientCmd.Flags()
@@ -51,13 +49,17 @@ func init() {
 	flags.Int32Var(&clientBootstrapPort, "bootstrap-port", 8000, "The client bootstrap port")
 	flags.StringVar(&clientKeyPath, "key", "", "The path to the private key file")
 	flags.StringVar(&clientClientPath, "conn", "https://ropsten.infura.io/", "The url to which the ethereum client connects to the network")
-	flags.StringVar(&clientRelayContractAddress, "relay", "", "The ethereum address of the relay handler contract")
-	flags.StringVar(&clientCoinContractAddress, "coin", "", "The ethereum address of the swiss coin contract")
+	flags.StringVar(&clientConfigPath, "config", "", "The config path")
 
 	rootCmd.AddCommand(clientCmd)
 }
 
-func runClient(localIP string, publicIP string, port int, bootstrapIP string, bootstrapPort int, keyPath string, clientURL string, relayAddr string, coinAddr string) {
+func runClient(localIP string, publicIP string, port int, bootstrapIP string, bootstrapPort int, keyPath string, clientURL string, configPath string) {
+
+	config, err := util.ReadContractsConfig(configPath)
+	if err != nil {
+		panic(err)
+	}
 
 	fmt.Println("Building swiss node...")
 
@@ -75,13 +77,13 @@ func runClient(localIP string, publicIP string, port int, bootstrapIP string, bo
 		os.Exit(1)
 	}
 
-	relay, err := eth.GetRelayHandler(common.HexToAddress(relayAddr), client)
+	relay, err := eth.GetRelayHandler(common.HexToAddress(config.Relay), client)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
-	coin, err := eth.GetSwissCoin(common.HexToAddress(coinAddr), client)
+	coin, err := eth.GetSwissCoin(common.HexToAddress(config.Swiss), client)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)

@@ -2,6 +2,7 @@ package swiss
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log"
 	"math/big"
@@ -91,6 +92,9 @@ func (client *Client) watchForPaymentRequests(ctx context.Context) {
 		}
 
 		for iterator.Next() {
+
+			client.debug("Honoring request")
+
 			relayEvent := iterator.Event
 			request, err := client.node.relay.Relay.GetRelay(nil, nodeID.Base10(), relayEvent.Relay)
 			if err != nil {
@@ -98,12 +102,14 @@ func (client *Client) watchForPaymentRequests(ctx context.Context) {
 				continue
 			}
 
-			safeEthclient.SubmitTransaction(func(ethclient *ethclient.Client) error {
+			client.debug("Submitting transaction")
+
+			safeEthclient.SubmitTransaction(func(ethclient *ethclient.Client) (error, bool) {
 
 				auth, err := eth.PrepareTransactionAuth(ethclient, client.node.PrivateKey)
 				if err != nil {
 					client.debug(err)
-					return err
+					return err, false
 				}
 
 				tran, err := client.node.coin.Coin.Allow(auth, client.node.relay.RelayAddr, request.SentBytes)
@@ -113,7 +119,7 @@ func (client *Client) watchForPaymentRequests(ctx context.Context) {
 					client.debug(tran.Hash().Hex())
 				}
 
-				return err
+				return err, false
 			})
 
 		}
@@ -138,12 +144,15 @@ func (client *Client) watchForAllowedConfirmation(ctx context.Context) {
 		}
 
 		for iterator.Next() {
+
+			fmt.Println("Found allowance. Honoring")
+
 			evnt := iterator.Event
-			safeEthclient.SubmitTransaction(func(ethclient *ethclient.Client) error {
+			safeEthclient.SubmitTransaction(func(ethclient *ethclient.Client) (error, bool) {
 				auth, err := eth.PrepareTransactionAuth(ethclient, client.node.PrivateKey)
 				if err != nil {
 					client.debug(err)
-					return err
+					return err, false
 				}
 
 				tran, err := client.node.relay.Relay.HonorRelay(auth, nodeID.Base10(), userAddr, evnt.Value)
@@ -153,7 +162,7 @@ func (client *Client) watchForAllowedConfirmation(ctx context.Context) {
 					client.debug(tran.Hash().Hex())
 				}
 
-				return err
+				return err, false
 			})
 		}
 

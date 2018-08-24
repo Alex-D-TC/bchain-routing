@@ -19,6 +19,7 @@ var keyPath string
 var clientPath string
 var relayContractAddress string
 var coinContractAddress string
+var config string
 
 var infraNodeDeploy = &cobra.Command{
 	Use:   "infra-deploy",
@@ -39,8 +40,7 @@ var infraNodeDeploy = &cobra.Command{
 				int(bootstrapPort),
 				keyPath,
 				clientPath,
-				relayContractAddress,
-				coinContractAddress)
+				config)
 
 			port++
 		}
@@ -61,13 +61,12 @@ func init() {
 	flags.Int32Var(&bootstrapPort, "bootstrap-port", 3030, "The bootstrap port of the cluster")
 	flags.StringVar(&keyPath, "key", "", "The path to the private key file. For simplicity, the same private key will be held by all nodes in the local testnet")
 	flags.StringVar(&clientPath, "conn", "https://ropsten.infura.io/", "The url to which the ethereum client connects to the network")
-	flags.StringVar(&relayContractAddress, "relay", "", "The ethereum address of the relay handler contract")
-	flags.StringVar(&coinContractAddress, "coin", "", "The ethereum address of the swiss coin contract")
+	flags.StringVar(&config, "config", "", "The config path")
 
 	rootCmd.AddCommand(infraNodeDeploy)
 }
 
-func deployNode(localIP string, globalIP string, port int, bootstrapIP string, bootstrapPort int, keyPath string, clientURL string, relayAddr string, coinAddr string) {
+func deployNode(localIP string, globalIP string, port int, bootstrapIP string, bootstrapPort int, keyPath string, clientURL string, config string) {
 
 	gopath := os.Getenv("GOPATH")
 	command := exec.Command(fmt.Sprintf("%s/bin/bchain-routing", gopath),
@@ -79,8 +78,7 @@ func deployNode(localIP string, globalIP string, port int, bootstrapIP string, b
 		"--global-ip", globalIP,
 		"--key", keyPath,
 		"--conn", clientURL,
-		"--relay", relayAddr,
-		"--coin", coinAddr)
+		"--config", config)
 
 	fmt.Println("Deploying...")
 	err := command.Start()

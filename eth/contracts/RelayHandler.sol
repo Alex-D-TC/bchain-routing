@@ -67,6 +67,8 @@ contract RelayHandler {
     }
 
     function getRelay(uint128 _addr, uint _id) public view returns (
+        bool honored,
+        uint128 sender,
         uint128 sentBytes,
         bytes memory sentBytesSignature,
         bytes memory senderPublicKey,
@@ -76,13 +78,17 @@ contract RelayHandler {
         require(_id < relays[_addr].length, "Relay with the given id does not exist");
 
         // Messy return of relay data
-        Relay storage relay = relays[_addr][_id].relay;
+        RelayRequest storage relay = relays[_addr][_id];
 
-        sentBytes = relay.sentBytes;
-        sentBytesSignature = relay.sentBytesSignature;
-        senderPublicKey = relay.senderPublicKey;
+        honored = relay.honored;
+        sender = relay.relay.sender;
 
-        ipfsRelayHash = relay.ipfsRelayHash;                
+        sentBytes = relay.relay.sentBytes;
+        sentBytesSignature = relay.relay.sentBytesSignature;
+        senderPublicKey = relay.relay.senderPublicKey;
+        sentBytesHash = relay.relay.sentBytesHash;
+
+        ipfsRelayHash = relay.relay.ipfsRelayHash;                
     }
 
     function honorRelay(uint128 _sender, address _honorerAddr, uint _totalVal) public {

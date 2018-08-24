@@ -56,8 +56,6 @@ func testSendRelayRequest() {
 
 	fmt.Println(crypto.PubkeyToAddress(k1.PublicKey).Hex())
 
-	fmt.Println("Submitting relay request")
-
 	ipfsID, err := swiss.IPFSStoreRelayFile(msg)
 	if err != nil {
 		panic(err)
@@ -65,22 +63,22 @@ func testSendRelayRequest() {
 
 	done := make(chan uint8)
 
-	client.SubmitTransaction(func(client *ethclient.Client) error {
+	client.SubmitTransaction(func(client *ethclient.Client) (error, bool) {
 		auth, err := eth.PrepareTransactionAuth(client, k1)
 		if err != nil {
-			return err
+			return err, false
 		}
 
 		solidityRelay, err := swiss.MakeSolidityRelay(msg, []byte(ipfsID))
 		if err != nil {
-			return err
+			return err, false
 		}
 
-		fmt.Println("Submitted transaction")
+		fmt.Println("Submitting relay request")
 
 		tx, err := relay.Relay.SubmitRelay(
 			auth,
-			solidityRelay.Receiver,
+			solidityRelay.Sender,
 			solidityRelay.SentBytes,
 			solidityRelay.SentBytesHash,
 			solidityRelay.SentBytesSignature,
@@ -96,7 +94,7 @@ func testSendRelayRequest() {
 
 		done <- 1
 
-		return err
+		return err, false
 	})
 
 	// Wait for the transaction to be done

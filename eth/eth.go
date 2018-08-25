@@ -3,7 +3,7 @@ package eth
 import (
 	"context"
 	"crypto/ecdsa"
-	"fmt"
+	"log"
 	"math/big"
 	"sync"
 	"time"
@@ -125,7 +125,7 @@ func PrepareTransactionAuth(client *ethclient.Client, key *ecdsa.PrivateKey) (*b
 	return auth, nil
 }
 
-func EventWatcher(ctx context.Context, client *ThreadsafeClient, filterProcessor func(*bind.FilterOpts)) {
+func EventWatcher(ctx context.Context, logger *log.Logger, client *ThreadsafeClient, filterProcessor func(*bind.FilterOpts)) {
 
 	done := false
 	lastBlock := uint64(0)
@@ -146,11 +146,11 @@ func EventWatcher(ctx context.Context, client *ThreadsafeClient, filterProcessor
 		block := uint64(header.Number().Int64())
 
 		if lastBlock == block {
-			fmt.Println("Block already processed. Sleeping")
+			//fmt.Println("Block already processed. Sleeping")
 			continue
 		}
 
-		fmt.Println(fmt.Sprintf("Checking events from block %d to block %d", lastBlock+1, block))
+		//logger.Println(fmt.Sprintf("Checking events from block %d to block %d", lastBlock+1, block))
 
 		opts := &bind.FilterOpts{
 			Context: ctx,

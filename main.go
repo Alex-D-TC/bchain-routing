@@ -119,6 +119,7 @@ func testGetRelayRequest(id common.Address, relayId *big.Int) {
 	fmt.Println(string(res.IpfsRelayHash))
 	fmt.Println(res.Honored)
 	fmt.Println(res.SentBytes)
+	fmt.Println(res.Relayers[0].Hex())
 }
 
 func testSendRelayRequest() {

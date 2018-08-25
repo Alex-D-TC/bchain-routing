@@ -81,7 +81,7 @@ func (client *Client) watchForPaymentRequests(ctx context.Context) {
 
 	userAddr := crypto.PubkeyToAddress(client.node.PrivateKey.PublicKey)
 
-	eth.EventWatcher(ctx, client.node.client, func(opts *bind.FilterOpts) {
+	eth.EventWatcher(ctx, client.logger, client.node.client, func(opts *bind.FilterOpts) {
 
 		safeEthclient := client.node.client
 
@@ -138,7 +138,7 @@ func (client *Client) watchForAllowedConfirmation(ctx context.Context) {
 
 	userAddr := crypto.PubkeyToAddress(client.node.PrivateKey.PublicKey)
 
-	eth.EventWatcher(ctx, client.node.client, func(opts *bind.FilterOpts) {
+	eth.EventWatcher(ctx, client.logger, client.node.client, func(opts *bind.FilterOpts) {
 
 		safeEthclient := client.node.client
 

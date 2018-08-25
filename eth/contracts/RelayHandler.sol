@@ -73,7 +73,8 @@ contract RelayHandler {
         bytes memory sentBytesSignature,
         bytes memory senderPublicKey,
         bytes memory sentBytesHash,
-        bytes memory ipfsRelayHash) {
+        bytes memory ipfsRelayHash,
+        address[] memory relayers) {
 
         require(_id < relays[_addr].length, "Relay with the given id does not exist");
 
@@ -88,51 +89,75 @@ contract RelayHandler {
         senderPublicKey = relay.relay.senderPublicKey;
         sentBytesHash = relay.relay.sentBytesHash;
 
-        ipfsRelayHash = relay.relay.ipfsRelayHash;                
+        ipfsRelayHash = relay.relay.ipfsRelayHash;
+        relayers = relay.relay.relayers;
     }
 
     function honorRelay(uint _totalVal) public {
-    
-        uint nextRelay = nextToHonor[msg.sender];
 
-        // Get the next possible relay candidate
-        for (; nextRelay < relays[msg.sender].length; nextRelay++) {
-            if(relays[msg.sender][nextRelay].relay.sentBytes == _totalVal) {
+        uint nextRelay = nextToHonor[msg.sender];
+        
+        for(; nextRelay < relays[msg.sender].length; nextRelay++) {
+            if (relays[msg.sender][nextRelay].relay.sentBytes == _totalVal && !relays[msg.sender][nextRelay].honored) {
                 break;
             }
         }
 
-        require(relays[msg.sender][nextRelay].relay.sentBytes == _totalVal);
-
-        // We are highly optimistic people :>
-        relays[msg.sender][nextRelay].honored = true;
-
-        // Claim the funds
-        token.claimAllowance(msg.sender, relays[msg.sender][nextRelay].relay.sentBytes);
-        
-        // Send them to the relevant parties
-        address[] storage relayers = relays[msg.sender][nextRelay].relay.relayers;
-
-        // Split the funds (evenly for now)
-        uint256 valChunk = _totalVal / relayers.length;
-        uint256 valMod = _totalVal % relayers.length;
-
-        for(uint i = 1; i < relayers.length; ++i) {
-            address to = relayers[i];
-            uint256 toSend = valChunk;
-            if(i <= valMod) {
-                toSend += 1;
-            }
-
-            token.sendTo(to, toSend);
+        // All relays have been honored
+        if(nextRelay >= relays[msg.sender].length) {
+            return;
         }
 
+        assert(relays[msg.sender][nextRelay].relay.sentBytes == _totalVal);
+    
+        RelayRequest storage relay = relays[msg.sender][nextRelay];
+        
+        // OPTIMISM :>. Also in order to prevent reentry attacks from draining all reserved coins in the contract
+        relay.honored = true;
+
+        // Get the coins from the SWS contract
+        token.claimAllowance(msg.sender, _totalVal);
+
+        // Send SWS to relayers
+        // If there is only one relayer, refund
+        if(relay.relay.relayers.length == 1) {
+            token.sendTo(relay.relay.relayers[0], _totalVal);
+        } else {
+
+            uint relayersCount = relay.relay.relayers.length; 
+
+            uint bucketSize = _totalVal / (relayersCount - 1);
+            uint bucketRemainder = _totalVal % (relayersCount - 1);
+        
+            for(uint i = 1; i < relayersCount; ++i) {
+                
+                address relayer = relay.relay.relayers[i];
+                uint valToSend = bucketSize;
+                
+                if(i <= bucketRemainder) {
+                    valToSend += 1;
+                }
+
+                token.sendTo(relayer, valToSend);
+            }
+        }
+
+        // Clientside performance optimisation
+        // Select the first next relay which hasn't been honored
         uint next = nextRelay + 1;
-        for(; next < relays[msg.sender].length && relays[msg.sender][next].honored; next++){}
+        for(; next < relay.relay.relayers.length && relays[msg.sender][next].honored; ++next) {}
 
         nextToHonor[msg.sender] = next;
 
         emit RelayHonored(msg.sender, nextRelay, _totalVal);
+    }
+
+    function relayCount() public view returns (uint) {
+        return relays[msg.sender].length;
+    }
+
+    function nextUnhonoredRelay() public view returns (uint) {
+        return nextToHonor[msg.sender];
     }
 
     function switchToken(SimpleToken _token) public {

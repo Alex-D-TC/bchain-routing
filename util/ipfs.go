@@ -14,7 +14,7 @@ import (
 type IPFSFile struct {
 	Name string
 	Hash string
-	Size uint64
+	Size string
 }
 
 func IPFSReadFile(addr string) ([]byte, error) {

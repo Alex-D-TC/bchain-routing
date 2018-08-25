@@ -139,21 +139,4 @@ contract RelayHandler {
         require(owner == msg.sender, "Only the owner can call this");
         token = _token;
     }
-
-    function addressFromBytes(bytes memory _key) private pure returns (address) {
-
-        require(_key.length >= 20, "The key must be of at least 20 bytes");
-
-        uint160 result = 0;
-
-        uint i = _key.length - 1;
-        for(uint iterations = 0; iterations < 20; ++iterations) {
-            bytes20 b = _key[i];
-            result = result + uint160(b);
-            result = result << 8;
-            --i;
-        }
-        
-        return address(result);
-    }
 }

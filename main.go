@@ -25,6 +25,8 @@ func main() {
 
 		testGetRelayRequest(id.Base10(), big.NewInt(0))
 	*/
+
+	//testMsgRelay()
 	cmd.Execute()
 }
 
@@ -68,6 +70,13 @@ func testMsgRelay() {
 	for i := 0; i < len(solRelay.Relayers); i++ {
 		fmt.Println(solRelay.Relayers[i].Hex())
 	}
+
+	hash, err := swiss.IPFSStoreRelayFile(msg)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(hash)
 }
 
 func testGetRelayRequest(id common.Address, relayId *big.Int) {

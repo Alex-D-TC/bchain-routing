@@ -20,7 +20,7 @@ func IPFSStoreRelayFile(msg *Message) (string, error) {
 		return "", err
 	}
 
-	return ipfsFile.Name, err
+	return ipfsFile.Hash, err
 }
 
 func IPFSReadRelayFile(addr string) ([]RelayBlock, error) {

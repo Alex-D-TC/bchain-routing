@@ -95,11 +95,11 @@ func (msg *Message) ValidateRelayPath() error {
 
 	relayLen := uint(len(msg.RelayChain))
 
-	for i := relayLen - 1; ; i-- {
+	for i := uint(0); i < relayLen; i++ {
 
 		relayBlock := msg.RelayChain[i]
 
-		if i == relayLen-1 {
+		if i == 0 {
 			// root block special validation
 			err := validateRootBlockAgainstSenderData(&relayBlock, msg)
 			if err != nil {
@@ -108,7 +108,7 @@ func (msg *Message) ValidateRelayPath() error {
 
 		} else {
 
-			previousBlock := msg.RelayChain[i+1]
+			previousBlock := msg.RelayChain[i-1]
 
 			// normal block validation
 			err := validateAgainstPrevious(&relayBlock, &previousBlock, i)
@@ -125,11 +125,6 @@ func (msg *Message) ValidateRelayPath() error {
 
 		if !valid {
 			return errors.New("Relay block signature validation failed")
-		}
-
-		// The loop is done
-		if i == 0 {
-			break
 		}
 	}
 
@@ -167,17 +162,7 @@ func validateAgainstPrevious(relayBlock *RelayBlock, previousBlock *RelayBlock, 
 		return fmt.Errorf("Index %d: Previous ID of relay block does not match ID of previous block", i)
 	}
 
-	relayKey, err := util.UnmarshalPubKey(relayBlock.PubKeyRaw)
-	if err != nil {
-		return err
-	}
-
-	prevRelayKey, err := util.UnmarshalPubKey(previousBlock.PubKeyRaw)
-	if err != nil {
-		return err
-	}
-
-	if !util.PubKeysEqual(*relayKey, *prevRelayKey) {
+	if !bytes.Equal(relayBlock.PrevPubKeyRaw, previousBlock.PubKeyRaw) {
 		return fmt.Errorf("Index %d: Previous PubKey of relay block does not match PubKey of previous block", i)
 	}
 

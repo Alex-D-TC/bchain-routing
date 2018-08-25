@@ -79,13 +79,13 @@ func (client *Client) watchForPaymentRequests(ctx context.Context) {
 
 	client.debug("Starting relay request watcher")
 
-	nodeID := client.node.ID
+	userAddr := crypto.PubkeyToAddress(client.node.PrivateKey.PublicKey)
 
 	eth.EventWatcher(ctx, client.node.client, func(opts *bind.FilterOpts) {
 
 		safeEthclient := client.node.client
 
-		iterator, err := client.node.relay.Relay.FilterRelayPaymentRequested(opts, []*big.Int{nodeID.Base10()})
+		iterator, err := client.node.relay.Relay.FilterRelayPaymentRequested(opts, []common.Address{userAddr})
 		if err != nil {
 			client.debug(err)
 			return
@@ -95,11 +95,16 @@ func (client *Client) watchForPaymentRequests(ctx context.Context) {
 
 			relayEvent := iterator.Event
 
-			client.debug(fmt.Sprintf("Honoring relay request for id node %d of id %d", nodeID.Base10(), relayEvent.Relay))
+			client.debug(fmt.Sprintf("Honoring relay request for of user %s of id %d", userAddr.Hex(), relayEvent.Relay))
 
-			request, err := client.node.relay.Relay.GetRelay(nil, nodeID.Base10(), relayEvent.Relay)
+			request, err := client.node.relay.Relay.GetRelay(nil, userAddr, relayEvent.Relay)
 			if err != nil {
 				client.debug(err)
+				continue
+			}
+
+			if request.Honored {
+				client.debug("Request has already been honored")
 				continue
 			}
 
@@ -132,7 +137,6 @@ func (client *Client) watchForAllowedConfirmation(ctx context.Context) {
 	client.debug("Starting allowance watcher")
 
 	userAddr := crypto.PubkeyToAddress(client.node.PrivateKey.PublicKey)
-	nodeID := client.node.ID
 
 	eth.EventWatcher(ctx, client.node.client, func(opts *bind.FilterOpts) {
 
@@ -156,7 +160,7 @@ func (client *Client) watchForAllowedConfirmation(ctx context.Context) {
 					return err, false
 				}
 
-				tran, err := client.node.relay.Relay.HonorRelay(auth, nodeID.Base10(), userAddr, evnt.Value)
+				tran, err := client.node.relay.Relay.HonorRelay(auth, evnt.Value)
 				if err != nil {
 					client.debug(err)
 				} else {

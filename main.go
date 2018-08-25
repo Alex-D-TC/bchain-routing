@@ -28,7 +28,49 @@ func main() {
 	cmd.Execute()
 }
 
-func testGetRelayRequest(id *big.Int, relayId *big.Int) {
+func testMsgRelay() {
+
+	k1, err := util.LoadKeys("./RES/eth.key")
+	if err != nil {
+		panic(err)
+	}
+
+	k2, err := util.LoadKeys("./RES/eth2.key")
+	if err != nil {
+		panic(err)
+	}
+
+	sender := wendy.NodeID{0, 1}
+	relayer := wendy.NodeID{6, 9}
+	receiver := wendy.NodeID{1, 2}
+
+	msg, err := swiss.MakeMessage(sender, k1, receiver, []byte("OMFGYES"))
+	err = msg.Relay(sender, relayer, k1)
+	if err != nil {
+		panic(err)
+	}
+
+	err = msg.Relay(relayer, receiver, k2)
+	if err != nil {
+		panic(err)
+	}
+
+	err = msg.ValidateRelayPath()
+	if err != nil {
+		panic(err)
+	}
+
+	solRelay, err := swiss.MakeSolidityRelay(msg, []byte("CACAT"))
+	if err != nil {
+		panic(err)
+	}
+
+	for i := 0; i < len(solRelay.Relayers); i++ {
+		fmt.Println(solRelay.Relayers[i].Hex())
+	}
+}
+
+func testGetRelayRequest(id common.Address, relayId *big.Int) {
 	client, err := eth.GetThreadsafeClient("https://ropsten.infura.io")
 	if err != nil {
 		panic(err)
@@ -59,6 +101,15 @@ func testGetRelayRequest(id *big.Int, relayId *big.Int) {
 
 		fmt.Println(string(raw))
 	*/
+	pkey, err := util.UnmarshalPubKey(res.SenderPublicKey)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(crypto.PubkeyToAddress(*pkey).Hex())
+	fmt.Println(string(res.IpfsRelayHash))
+	fmt.Println(res.Honored)
+	fmt.Println(res.SentBytes)
 }
 
 func testSendRelayRequest() {

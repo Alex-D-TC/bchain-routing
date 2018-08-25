@@ -37,7 +37,7 @@ contract RelayHandler {
     }
 
     function submitRelay(
-        uint128 _sender,
+        address _sender,
         uint128 _sentBytes,
         bytes memory _sentBytesHash, 
         bytes memory _sentBytesSignature, 

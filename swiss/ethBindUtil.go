@@ -12,7 +12,7 @@ import (
 type SolidityRelay struct {
 
 	// Message validation data
-	Sender             *big.Int
+	Sender             common.Address
 	SentBytes          *big.Int
 	SentBytesHash      []byte
 	SentBytesSignature []byte
@@ -26,7 +26,12 @@ type SolidityRelay struct {
 func MakeSolidityRelay(msg *Message, IPFSAddress []byte) (SolidityRelay, error) {
 	relay := SolidityRelay{}
 
-	relay.Sender = msg.Sender.Base10()
+	senderPubkey, err := util.UnmarshalPubKey(msg.SenderPubKeyRaw)
+	if err != nil {
+		return SolidityRelay{}, err
+	}
+
+	relay.Sender = crypto.PubkeyToAddress(*senderPubkey)
 	relay.SentBytes = big.NewInt(int64(len(msg.Payload)))
 	relay.SentBytesHash = msg.ByteCountHash
 	relay.SentBytesSignature = msg.ByteCountSignature

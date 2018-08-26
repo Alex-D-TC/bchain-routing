@@ -4,8 +4,8 @@ import (
 	"github.com/alex-d-tc/bchain-routing/util"
 )
 
-func IPFSStoreRelayFile(msg *Message) (string, error) {
-	json, err := util.JSONEncode(msg)
+func IPFSStoreRelayFile(relay IPFSRelay) (string, error) {
+	json, err := util.JSONEncode(relay)
 	if err != nil {
 		return "", err
 	}

@@ -132,8 +132,13 @@ func (node *SwissNode) forwardingProcessor(rawPayload []byte, next wendy.NodeID)
 				return err, false
 			}
 
+			relay, err := MakeIPFSRelay(&msg)
+			if err != nil {
+				return err, false
+			}
+
 			// Store data in ipfs beforehand
-			ipfsID, err := IPFSStoreRelayFile(&msg)
+			ipfsID, err := IPFSStoreRelayFile(relay)
 			if err != nil {
 				node.debug(err)
 				return err, false

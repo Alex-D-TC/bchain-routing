@@ -5,12 +5,12 @@ import "./SimpleToken.sol";
 contract RelayHandler {
 
     struct Relay {
-
         address sender;
+        bytes senderPubkeyRaw;
+
+        uint128 senderID;
+        uint128 receiverID;
         uint128 sentBytes;
-        bytes sentBytesHash;
-        bytes sentBytesSignature;
-        bytes senderPublicKey;
 
         bytes ipfsRelayHash;
         address[] relayers;
@@ -38,19 +38,19 @@ contract RelayHandler {
 
     function submitRelay(
         address _sender,
+        bytes memory _senderPubkeyRaw,
+        uint128 _senderID,
+        uint128 _receiverID,
         uint128 _sentBytes,
-        bytes memory _sentBytesHash, 
-        bytes memory _sentBytesSignature, 
-        bytes memory _senderPublicKey, 
         bytes memory _ipfsRelayHash,
         address[] memory _relayers) public returns(uint) {
         
         Relay memory relay = Relay({
             sender: _sender,
             sentBytes: _sentBytes,
-            sentBytesHash: _sentBytesHash,
-            sentBytesSignature: _sentBytesSignature,
-            senderPublicKey: _senderPublicKey,
+            senderPubkeyRaw: _senderPubkeyRaw,
+            senderID: _senderID,
+            receiverID: _receiverID,
             ipfsRelayHash: _ipfsRelayHash,
             relayers: _relayers
         });
@@ -69,10 +69,10 @@ contract RelayHandler {
     function getRelay(address _addr, uint _id) public view returns (
         bool honored,
         address sender,
+        bytes memory senderPubkeyRaw,
+        uint128 senderID,
+        uint128 receiverID,
         uint128 sentBytes,
-        bytes memory sentBytesSignature,
-        bytes memory senderPublicKey,
-        bytes memory sentBytesHash,
         bytes memory ipfsRelayHash,
         address[] memory relayers) {
 
@@ -85,9 +85,9 @@ contract RelayHandler {
         sender = relay.relay.sender;
 
         sentBytes = relay.relay.sentBytes;
-        sentBytesSignature = relay.relay.sentBytesSignature;
-        senderPublicKey = relay.relay.senderPublicKey;
-        sentBytesHash = relay.relay.sentBytesHash;
+        senderPubkeyRaw = relay.relay.senderPubkeyRaw;
+        senderID = relay.relay.senderID;
+        receiverID = relay.relay.receiverID;
 
         ipfsRelayHash = relay.relay.ipfsRelayHash;
         relayers = relay.relay.relayers;

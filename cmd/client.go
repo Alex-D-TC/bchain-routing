@@ -163,7 +163,7 @@ func processCommand(rawLine string, node *swiss.SwissNode) {
 		fmt.Println(fmt.Sprintf("Sending %s to %s", message, receiver))
 		err = node.Send(id, []byte(message))
 		if err != nil {
-			fmt.Println(err)
+			fmt.Println("Error preparing the message for sending: ", err)
 		}
 	}
 

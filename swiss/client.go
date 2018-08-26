@@ -150,7 +150,7 @@ func (client *Client) watchForAllowedConfirmation(ctx context.Context) {
 
 		for iterator.Next() {
 
-			fmt.Println("Found allowance. Honoring")
+			client.debug("Found allowance. Honoring")
 
 			evnt := iterator.Event
 			safeEthclient.SubmitTransaction(func(ethclient *ethclient.Client) (error, bool) {

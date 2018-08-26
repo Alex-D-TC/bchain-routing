@@ -145,15 +145,15 @@ func (node *SwissNode) forwardingProcessor(rawPayload []byte, next wendy.NodeID)
 				return err, false
 			}
 
-			fmt.Println("Submitting relay request")
+			node.debug("Submitting relay request")
 
 			tran, err := node.relay.Relay.SubmitRelay(
 				auth,
-				solidityRelay.Sender,
-				solidityRelay.SentBytes,
-				solidityRelay.SentBytesHash,
-				solidityRelay.SentBytesSignature,
-				solidityRelay.SenderPubKey,
+				solidityRelay.SenderEthAddress,
+				solidityRelay.SenderPubKeyRaw,
+				solidityRelay.Sender.Base10(),
+				solidityRelay.Receiver.Base10(),
+				solidityRelay.SentByteCount,
 				solidityRelay.IpfsRelayHash,
 				solidityRelay.Relayers)
 

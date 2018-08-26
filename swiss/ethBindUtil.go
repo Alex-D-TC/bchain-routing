@@ -7,20 +7,23 @@ import (
 	"github.com/alex-d-tc/bchain-routing/util"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
+	"secondbit.org/wendy"
 )
 
 type SolidityRelay struct {
 
 	// Message validation data
-	Sender             common.Address
-	SentBytes          *big.Int
-	SentBytesHash      []byte
-	SentBytesSignature []byte
-	SenderPubKey       []byte
+	SenderEthAddress common.Address
+	SenderPubKeyRaw  []byte
+
+	Sender   wendy.NodeID
+	Receiver wendy.NodeID
+
+	SentByteCount *big.Int
+	Relayers      []common.Address
 
 	// IPFS Proof of relay reference data
 	IpfsRelayHash []byte
-	Relayers      []common.Address
 }
 
 func MakeSolidityRelay(msg *Message, IPFSAddress []byte) (SolidityRelay, error) {
@@ -31,11 +34,12 @@ func MakeSolidityRelay(msg *Message, IPFSAddress []byte) (SolidityRelay, error) 
 		return SolidityRelay{}, err
 	}
 
-	relay.Sender = crypto.PubkeyToAddress(*senderPubkey)
-	relay.SentBytes = big.NewInt(int64(len(msg.Payload)))
-	relay.SentBytesHash = msg.ByteCountHash
-	relay.SentBytesSignature = msg.ByteCountSignature
-	relay.SenderPubKey = msg.SenderPubKeyRaw
+	relay.SenderEthAddress = crypto.PubkeyToAddress(*senderPubkey)
+	relay.SenderPubKeyRaw = msg.SenderPubKeyRaw
+	relay.Sender = msg.Sender
+	relay.Receiver = msg.Receiver
+	relay.SentByteCount = big.NewInt(int64(len(msg.Payload)))
+
 	relay.IpfsRelayHash = IPFSAddress
 
 	for i := 0; i < len(msg.RelayChain); i++ {

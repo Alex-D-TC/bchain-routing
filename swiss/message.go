@@ -3,7 +3,6 @@ package swiss
 import (
 	"bytes"
 	"crypto/ecdsa"
-	"encoding/binary"
 	"errors"
 	"fmt"
 
@@ -20,11 +19,13 @@ type Message struct {
 
 	RelayChain []RelayBlock
 
-	Payload            []byte
-	ByteCountHash      []byte
-	ByteCountSignature []byte
+	Payload []byte
 
-	Signature []byte
+	DataWithPayloadHash      []byte
+	DataWithPayloadSignature []byte
+
+	DataWithPayloadSizeHash      []byte
+	DataWithPayloadSizeSignature []byte
 }
 
 func MakeMessage(sender wendy.NodeID, senderPrivateKey *ecdsa.PrivateKey, receiver wendy.NodeID, payload []byte) (*Message, error) {
@@ -35,19 +36,6 @@ func MakeMessage(sender wendy.NodeID, senderPrivateKey *ecdsa.PrivateKey, receiv
 		RelayChain:      nil,
 		Payload:         payload,
 	}
-
-	byteCountBytes := bytes.NewBuffer([]byte{})
-	binary.Write(byteCountBytes, binary.BigEndian, len(payload))
-
-	byteCountHash := crypto.Keccak256(byteCountBytes.Bytes())
-	msg.ByteCountHash = byteCountHash
-
-	byteCountSignature, err := util.Sign(senderPrivateKey, byteCountHash)
-	if err != nil {
-		return nil, err
-	}
-
-	msg.ByteCountSignature = byteCountSignature
 
 	bytes, err := util.GobEncode(msg)
 	if err != nil {
@@ -61,7 +49,32 @@ func MakeMessage(sender wendy.NodeID, senderPrivateKey *ecdsa.PrivateKey, receiv
 		return nil, err
 	}
 
-	msg.Signature = sign
+	msg.DataWithPayloadHash = hash
+	msg.DataWithPayloadSignature = sign
+
+	bytes, err = util.GobEncode(struct {
+		Sender   wendy.NodeID
+		Receiver wendy.NodeID
+
+		SenderPubKeyRaw []byte
+
+		RelayChain []RelayBlock
+
+		PayloadSize uint64
+	}{
+		Sender:          msg.Sender,
+		Receiver:        msg.Receiver,
+		SenderPubKeyRaw: msg.SenderPubKeyRaw,
+		RelayChain:      msg.RelayChain,
+		PayloadSize:     uint64(len(msg.Payload)),
+	})
+
+	hash = crypto.Keccak256(bytes)
+
+	signature, err := util.Sign(senderPrivateKey, hash)
+
+	msg.DataWithPayloadSizeHash = hash
+	msg.DataWithPayloadSizeSignature = signature
 
 	return &msg, err
 }

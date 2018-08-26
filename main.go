@@ -110,7 +110,7 @@ func testGetRelayRequest(id common.Address, relayId *big.Int) {
 
 		fmt.Println(string(raw))
 	*/
-	pkey, err := util.UnmarshalPubKey(res.SenderPublicKey)
+	pkey, err := util.UnmarshalPubKey(res.SenderPubkeyRaw)
 	if err != nil {
 		panic(err)
 	}
@@ -181,11 +181,11 @@ func testSendRelayRequest() {
 
 		tx, err := relay.Relay.SubmitRelay(
 			auth,
-			solidityRelay.Sender,
-			solidityRelay.SentBytes,
-			solidityRelay.SentBytesHash,
-			solidityRelay.SentBytesSignature,
-			solidityRelay.SenderPubKey,
+			solidityRelay.SenderEthAddress,
+			solidityRelay.SenderPubKeyRaw,
+			solidityRelay.Sender.Base10(),
+			solidityRelay.Receiver.Base10(),
+			solidityRelay.SentByteCount,
 			solidityRelay.IpfsRelayHash,
 			solidityRelay.Relayers)
 

@@ -142,7 +142,7 @@ contract RelayHandler {
             }
         }
 
-        // Clientside performance optimisation
+        // Transcation performance optimisation
         // Select the first next relay which hasn't been honored
         uint next = nextRelay + 1;
         for(; next < relay.relay.relayers.length && relays[msg.sender][next].honored; ++next) {}

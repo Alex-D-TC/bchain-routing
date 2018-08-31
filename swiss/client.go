@@ -13,6 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"secondbit.org/wendy"
 )
 
 type Client struct {
@@ -48,6 +49,10 @@ func (client *Client) Start(processor func(*Message)) {
 
 		client.node.Start(processor)
 	}
+}
+
+func (client *Client) Send(destination wendy.NodeID, rawData []byte) error {
+	return client.node.Send(destination, rawData)
 }
 
 func (client *Client) JoinAndStart(processor func(*Message), bootstrapIP string, bootstrapPort int) error {

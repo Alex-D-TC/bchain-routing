@@ -3,7 +3,6 @@ package eth
 import (
 	"context"
 	"crypto/ecdsa"
-	"fmt"
 	"log"
 	"math/big"
 	"sync"
@@ -151,7 +150,7 @@ func EventWatcher(ctx context.Context, logger *log.Logger, client *ThreadsafeCli
 
 		header, err := client.client.BlockByNumber(ctx, nil)
 		if err != nil {
-			fmt.Println(err)
+			logger.Println(err)
 			// Retry on error
 			continue
 		}

@@ -3,6 +3,7 @@ package eth
 import (
 	"context"
 	"crypto/ecdsa"
+	"fmt"
 	"log"
 	"math/big"
 	"sync"
@@ -132,13 +133,27 @@ func EventWatcher(ctx context.Context, logger *log.Logger, client *ThreadsafeCli
 
 	for {
 
+		select {
+		case <-ctx.Done():
+			done = true
+			break
+		default:
+			break
+		}
+
+		if done {
+			break
+		}
+
 		time.Sleep(5 * time.Second)
 
 		client.RLock()
 
 		header, err := client.client.BlockByNumber(ctx, nil)
 		if err != nil {
-			panic(err)
+			fmt.Println(err)
+			// Retry on error
+			continue
 		}
 
 		client.RUnlock()
@@ -160,18 +175,5 @@ func EventWatcher(ctx context.Context, logger *log.Logger, client *ThreadsafeCli
 
 		filterProcessor(opts)
 		lastBlock = block
-
-		select {
-		case <-ctx.Done():
-			done = true
-			break
-		default:
-			break
-		}
-
-		if done {
-			break
-		}
 	}
-
 }

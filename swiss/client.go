@@ -75,8 +75,8 @@ func (client *Client) Terminate() {
 	if client.started {
 		client.started = false
 
-		client.node.Terminate()
 		client.cancelFunc()
+		client.node.Terminate()
 	}
 }
 
@@ -135,6 +135,8 @@ func (client *Client) watchForPaymentRequests(ctx context.Context) {
 
 		}
 	})
+
+	client.debug("Stopping payment request watcher")
 }
 
 func (client *Client) watchForAllowedConfirmation(ctx context.Context) {
@@ -177,6 +179,8 @@ func (client *Client) watchForAllowedConfirmation(ctx context.Context) {
 		}
 
 	})
+
+	client.debug("Stopping allowance watcher")
 }
 
 func (client *Client) SetOutput(writer io.Writer) {

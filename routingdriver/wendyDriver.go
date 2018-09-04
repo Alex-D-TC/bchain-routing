@@ -34,7 +34,7 @@ func (app *wendyHook) OnForward(msg *wendy.Message, next wendy.NodeID) bool {
 }
 
 func (app *wendyHook) OnError(err error) {
-	panic(err.Error())
+	app.debug(err.Error())
 }
 
 func (app *wendyHook) OnNewLeaves(leaves []*wendy.Node) {

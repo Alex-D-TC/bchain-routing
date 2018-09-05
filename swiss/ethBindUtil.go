@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/alex-d-tc/bchain-routing/net"
 	"github.com/alex-d-tc/bchain-routing/util"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
-	"secondbit.org/wendy"
 )
 
 type SolidityRelay struct {
@@ -16,8 +16,8 @@ type SolidityRelay struct {
 	SenderEthAddress common.Address
 	SenderPubKeyRaw  []byte
 
-	Sender   wendy.NodeID
-	Receiver wendy.NodeID
+	Sender   net.NodeID
+	Receiver net.NodeID
 
 	SentByteCount *big.Int
 	Relayers      []common.Address

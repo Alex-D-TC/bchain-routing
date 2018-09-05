@@ -6,14 +6,14 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/alex-d-tc/bchain-routing/net"
 	"github.com/alex-d-tc/bchain-routing/util"
 	"github.com/ethereum/go-ethereum/crypto"
-	"secondbit.org/wendy"
 )
 
 type Message struct {
-	Sender   wendy.NodeID
-	Receiver wendy.NodeID
+	Sender   net.NodeID
+	Receiver net.NodeID
 
 	SenderPubKeyRaw []byte
 
@@ -28,7 +28,7 @@ type Message struct {
 	DataWithPayloadSizeSignature []byte
 }
 
-func MakeMessage(sender wendy.NodeID, senderPrivateKey *ecdsa.PrivateKey, receiver wendy.NodeID, payload []byte) (*Message, error) {
+func MakeMessage(sender net.NodeID, senderPrivateKey *ecdsa.PrivateKey, receiver net.NodeID, payload []byte) (*Message, error) {
 	msg := Message{
 		Sender:          sender,
 		Receiver:        receiver,
@@ -53,8 +53,8 @@ func MakeMessage(sender wendy.NodeID, senderPrivateKey *ecdsa.PrivateKey, receiv
 	msg.DataWithPayloadSignature = sign
 
 	bytes, err = util.GobEncode(struct {
-		Sender   wendy.NodeID
-		Receiver wendy.NodeID
+		Sender   net.NodeID
+		Receiver net.NodeID
 
 		SenderPubKeyRaw []byte
 
@@ -79,7 +79,7 @@ func MakeMessage(sender wendy.NodeID, senderPrivateKey *ecdsa.PrivateKey, receiv
 	return &msg, err
 }
 
-func (msg *Message) Relay(id wendy.NodeID, nextID wendy.NodeID, relayerPrivateKey *ecdsa.PrivateKey) error {
+func (msg *Message) Relay(id net.NodeID, nextID net.NodeID, relayerPrivateKey *ecdsa.PrivateKey) error {
 
 	currentID := msg.Sender
 	var prevBlock *RelayBlock

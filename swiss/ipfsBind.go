@@ -1,12 +1,10 @@
 package swiss
 
-import (
-	"secondbit.org/wendy"
-)
+import "github.com/alex-d-tc/bchain-routing/net"
 
 type IPFSRelay struct {
-	Sender   wendy.NodeID
-	Receiver wendy.NodeID
+	Sender   net.NodeID
+	Receiver net.NodeID
 
 	SenderPubKeyRaw []byte
 

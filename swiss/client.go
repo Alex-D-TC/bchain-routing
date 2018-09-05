@@ -9,11 +9,11 @@ import (
 	"os"
 
 	"github.com/alex-d-tc/bchain-routing/eth"
+	"github.com/alex-d-tc/bchain-routing/net"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"secondbit.org/wendy"
 )
 
 type Client struct {
@@ -51,10 +51,6 @@ func (client *Client) Start(processor func(*Message)) {
 	}
 }
 
-func (client *Client) Send(destination wendy.NodeID, rawData []byte) error {
-	return client.node.Send(destination, rawData)
-}
-
 func (client *Client) JoinAndStart(processor func(*Message), bootstrapIP string, bootstrapPort int) error {
 	if !client.started {
 		client.started = true
@@ -78,6 +74,14 @@ func (client *Client) Terminate() {
 		client.cancelFunc()
 		client.node.Terminate()
 	}
+}
+
+func (client *Client) GetID() net.NodeID {
+	return client.node.ID
+}
+
+func (client *Client) Send(destination net.NodeID, rawData []byte) error {
+	return client.node.Send(destination, rawData)
 }
 
 func (client *Client) watchForPaymentRequests(ctx context.Context) {

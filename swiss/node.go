@@ -10,13 +10,13 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 
 	"github.com/alex-d-tc/bchain-routing/eth"
+	"github.com/alex-d-tc/bchain-routing/net"
 	"github.com/alex-d-tc/bchain-routing/routingdriver"
 	"github.com/alex-d-tc/bchain-routing/util"
-	"secondbit.org/wendy"
 )
 
 type SwissNode struct {
-	ID         wendy.NodeID
+	ID         net.NodeID
 	PrivateKey *ecdsa.PrivateKey
 
 	Started bool
@@ -73,7 +73,7 @@ func (node *SwissNode) Terminate() {
 	}
 }
 
-func (node *SwissNode) Send(destination wendy.NodeID, payload []byte) error {
+func (node *SwissNode) Send(destination net.NodeID, payload []byte) error {
 
 	message, err := MakeMessage(node.ID, node.PrivateKey, destination, payload)
 	if err != nil {
@@ -97,7 +97,7 @@ func (node *SwissNode) debug(msg ...interface{}) {
 	node.logger.Println(msg...)
 }
 
-func (node *SwissNode) forwardingProcessor(rawPayload []byte, next wendy.NodeID) ([]byte, bool) {
+func (node *SwissNode) forwardingProcessor(rawPayload []byte, next net.NodeID) ([]byte, bool) {
 
 	// Message decoding from raw data
 

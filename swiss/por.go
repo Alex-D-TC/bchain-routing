@@ -3,15 +3,15 @@ package swiss
 import (
 	"crypto/ecdsa"
 
+	"github.com/alex-d-tc/bchain-routing/net"
 	"github.com/alex-d-tc/bchain-routing/util"
 	"github.com/ethereum/go-ethereum/crypto"
-	"secondbit.org/wendy"
 )
 
 type RelayBlock struct {
-	ID     wendy.NodeID
-	NextID wendy.NodeID
-	PrevID wendy.NodeID
+	ID     net.NodeID
+	NextID net.NodeID
+	PrevID net.NodeID
 
 	PubKeyRaw     []byte
 	PrevPubKeyRaw []byte
@@ -21,9 +21,9 @@ type RelayBlock struct {
 }
 
 type validationRelayBlock struct {
-	ID     wendy.NodeID
-	NextID wendy.NodeID
-	PrevID wendy.NodeID
+	ID     net.NodeID
+	NextID net.NodeID
+	PrevID net.NodeID
 
 	PubKeyRaw     []byte
 	PrevPubKeyRaw []byte
@@ -31,7 +31,7 @@ type validationRelayBlock struct {
 	PrevSignature []byte
 }
 
-func makeRelayBlock(id wendy.NodeID, privKey *ecdsa.PrivateKey, nextID wendy.NodeID, prevRelayBlock *RelayBlock) (*RelayBlock, error) {
+func makeRelayBlock(id net.NodeID, privKey *ecdsa.PrivateKey, nextID net.NodeID, prevRelayBlock *RelayBlock) (*RelayBlock, error) {
 	block := RelayBlock{
 		ID:        id,
 		PubKeyRaw: util.MarshalPubKey(&privKey.PublicKey),

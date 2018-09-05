@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/alex-d-tc/bchain-routing/net"
 	"secondbit.org/wendy"
 )
 
@@ -24,12 +25,12 @@ type RoutingDriver struct {
 	logger *log.Logger
 }
 
-func MakeRoutingDriver(nodeID wendy.NodeID, localIP string, globalIP string, port int, forwardMangler func([]byte, wendy.NodeID) ([]byte, bool)) *RoutingDriver {
-	node := wendy.NewNode(nodeID, localIP, globalIP, "1", port)
+func MakeRoutingDriver(nodeID net.NodeID, localIP string, globalIP string, port int, forwardMangler func([]byte, net.NodeID) ([]byte, bool)) *RoutingDriver {
+	node := wendy.NewNode(wendy.NodeID(nodeID), localIP, globalIP, "1", port)
 
 	messageBus := make(chan []byte, channelBufferSize)
 	hook := makeWendyHook(messageBus, func(msg *wendy.Message, next wendy.NodeID) bool {
-		return forwardingProcessor(msg, next, forwardMangler)
+		return forwardingProcessor(msg, net.NodeID(next), forwardMangler)
 	})
 
 	cluster := wendy.NewCluster(node, credentials{})
@@ -51,7 +52,7 @@ func MakeRoutingDriver(nodeID wendy.NodeID, localIP string, globalIP string, por
 	}
 }
 
-func forwardingProcessor(msg *wendy.Message, next wendy.NodeID, forwardMangler func([]byte, wendy.NodeID) ([]byte, bool)) bool {
+func forwardingProcessor(msg *wendy.Message, next net.NodeID, forwardMangler func([]byte, net.NodeID) ([]byte, bool)) bool {
 
 	payload, toSend := forwardMangler(msg.Value, next)
 	msg.Value = payload
@@ -87,8 +88,8 @@ func (driver *RoutingDriver) Stop() {
 	}
 }
 
-func (driver *RoutingDriver) Send(destinationAddr wendy.NodeID, messageData []byte) error {
-	message := driver.cluster.NewMessage(255, destinationAddr, messageData)
+func (driver *RoutingDriver) Send(destinationAddr net.NodeID, messageData []byte) error {
+	message := driver.cluster.NewMessage(255, wendy.NodeID(destinationAddr), messageData)
 	return driver.cluster.Send(message)
 }
 

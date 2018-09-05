@@ -12,6 +12,9 @@ import (
 
 const channelBufferSize = 100
 
+// RoutingDriver is the object used to communicate with the underlying P2P network
+// It allows the sending and receiving of messages asynchronously
+// TODO: Implement the bridge pattern for the RoutingDriver
 type RoutingDriver struct {
 	node    *wendy.Node
 	cluster *wendy.Cluster
